@@ -3,6 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="robots" content="noindex, nofollow" />
   <title>Top Tier Talent Group | Active Jobs Map & Distance Finder</title>
   
   <!-- Tailwind CSS -->
@@ -343,6 +344,29 @@
 
     // --- MAIN REACT APPLICATION ---
     function App() {
+      // Passcode Protection State
+      const [isAuthenticated, setIsAuthenticated] = useState(() => localStorage.getItem('tttg_radar_auth') === 'true');
+      const [inputPasscode, setInputPasscode] = useState('');
+      const [passError, setPassError] = useState(false);
+      const ACCESS_PASSCODE = 'TTTG2026'; // Private team passcode
+
+      const handleUnlock = (e) => {
+        if (e) e.preventDefault();
+        if (inputPasscode.trim().toUpperCase() === ACCESS_PASSCODE) {
+          localStorage.setItem('tttg_radar_auth', 'true');
+          setIsAuthenticated(true);
+          setPassError(false);
+        } else {
+          setPassError(true);
+        }
+      };
+
+      const handleLock = () => {
+        localStorage.removeItem('tttg_radar_auth');
+        setIsAuthenticated(false);
+        setInputPasscode('');
+      };
+
       const [jobs, setJobs] = useState([]);
       const [loading, setLoading] = useState(true);
       const [error, setError] = useState(null);
@@ -706,6 +730,62 @@
         setTimeout(() => setCopiedId(null), 2500);
       };
 
+      // If not authenticated, render private lock screen
+      if (!isAuthenticated) {
+        return (
+          <div className="flex items-center justify-center min-h-screen bg-slate-950 p-4 font-sans">
+            <div className="w-full max-w-md bg-slate-900/90 border border-slate-800 rounded-3xl p-8 shadow-2xl backdrop-blur text-center space-y-6">
+              
+              <div className="w-16 h-16 bg-gradient-to-tr from-emerald-600 to-teal-400 rounded-2xl mx-auto flex items-center justify-center text-3xl shadow-lg shadow-emerald-950/50">
+                🔒
+              </div>
+
+              <div>
+                <h1 className="text-xl font-bold text-white tracking-tight">Top Tier Talent Group</h1>
+                <p className="text-xs text-slate-400 mt-1">Private Jobs Map & Candidate Distance Radar</p>
+              </div>
+
+              <form onSubmit={handleUnlock} className="space-y-4">
+                <div className="text-left">
+                  <label className="block text-[11px] font-semibold text-slate-400 uppercase tracking-wider mb-1.5">
+                    Recruiter Passcode
+                  </label>
+                  <input
+                    type="password"
+                    autoFocus
+                    placeholder="Enter team passcode..."
+                    value={inputPasscode}
+                    onChange={(e) => {
+                      setInputPasscode(e.target.value);
+                      if (passError) setPassError(false);
+                    }}
+                    className={`w-full px-4 py-3 bg-slate-950 border ${
+                      passError ? 'border-rose-500 focus:ring-rose-500' : 'border-slate-700 focus:border-emerald-500'
+                    } rounded-xl text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 text-sm transition`}
+                  />
+                  {passError && (
+                    <p className="text-rose-400 text-xs mt-1.5 flex items-center gap-1">
+                      <span>⚠️</span> Invalid passcode. Please try again.
+                    </p>
+                  )}
+                </div>
+
+                <button
+                  type="submit"
+                  className="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-semibold py-3 rounded-xl text-sm transition shadow-lg shadow-emerald-950/40"
+                >
+                  Unlock Live Radar &rarr;
+                </button>
+              </form>
+
+              <p className="text-[11px] text-slate-500">
+                Protected recruiter link &bull; Not indexed by search engines
+              </p>
+            </div>
+          </div>
+        );
+      }
+
       return (
         <div className="flex flex-col h-screen w-screen overflow-hidden bg-slate-950 font-sans">
           
@@ -724,7 +804,7 @@
               </div>
             </div>
 
-            {/* Quick Status & Refresh */}
+            {/* Quick Status & Refresh & Lock */}
             <div className="flex items-center gap-3">
               <div className="hidden md:flex items-center gap-2 bg-slate-800/80 px-3 py-1.5 rounded-lg border border-slate-700 text-xs text-slate-300">
                 <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
@@ -739,6 +819,15 @@
               >
                 <span>🔄</span>
                 <span className="hidden sm:inline">Refresh Sheet</span>
+              </button>
+
+              <button
+                onClick={handleLock}
+                title="Lock Dashboard"
+                className="flex items-center gap-1.5 bg-slate-800/80 hover:bg-rose-900/40 text-slate-400 hover:text-rose-300 px-2.5 py-1.5 rounded-lg text-xs font-medium border border-slate-700 transition"
+              >
+                <span>🔒</span>
+                <span className="hidden sm:inline">Lock</span>
               </button>
 
               {/* Mobile View Toggle */}
