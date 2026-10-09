@@ -324,7 +324,29 @@
       });
     }
 
-    // Normalizes location text and resolves coordinates
+    // Splits multi-location strings by common delimiters (/, ;, |, newlines, &, and)
+    function splitLocationString(rawLoc) {
+      if (!rawLoc || typeof rawLoc !== 'string') return [];
+      const text = rawLoc.trim();
+      if (!text) return [];
+
+      let parts = [];
+      if (/[\/;|\n\r]+/.test(text)) {
+        parts = text.split(/[\/;|\n\r]+/).map(s => s.trim()).filter(Boolean);
+      } else if (/\s+and\s+|\s+&\s+/i.test(text) && (text.includes(',') || text.includes('ON') || text.includes('CA') || text.includes('MI'))) {
+        parts = text.split(/\s+and\s+|\s+&\s+/i).map(s => s.trim()).filter(Boolean);
+      } else {
+        const provinceMatches = text.match(/(?:[A-Za-z0-9\s.-]+,\s*(?:ON|Ontario|BC|AB|QC|MB|SK|NS|NB|NL|PE|CA|California|MI|Michigan|OH|NY|TX|FL|[A-Z]{2}))/gi);
+        if (provinceMatches && provinceMatches.length > 1) {
+          parts = provinceMatches.map(s => s.trim()).filter(Boolean);
+        } else {
+          parts = [text];
+        }
+      }
+      return parts.length > 0 ? parts : [text];
+    }
+
+    // Normalizes location text and resolves coordinates (with localStorage cache & exact address fuzzy lookup)
     function resolveCoordinates(locationStr, jobDescription = '') {
       if (!locationStr || locationStr.trim() === '') {
         const match = jobDescription.match(/Location:\s*([^\r\n,]+(?:,\s*[^\r\n]+)?)/i);
@@ -335,15 +357,25 @@
 
       if (!locationStr) return null;
 
+      // 1. Check persistent localStorage geocache
+      try {
+        const cache = JSON.parse(localStorage.getItem('tttg_geo_cache') || '{}');
+        if (cache[locationStr]) {
+          return { latLng: cache[locationStr], resolvedName: locationStr, isExact: true };
+        }
+      } catch (e) {}
+
       const cleaned = locationStr.toLowerCase().replace(/[^\w\s,]/g, '').trim();
       
+      // 2. Exact match in built-in city coordinates
       if (CITY_COORDINATES[cleaned]) {
-        return { latLng: CITY_COORDINATES[cleaned], resolvedName: locationStr };
+        return { latLng: CITY_COORDINATES[cleaned], resolvedName: locationStr, isExact: false };
       }
 
+      // 3. Substring match for city in exact address (e.g. "4500 Rhodes Dr, Windsor, ON")
       for (const [key, coords] of Object.entries(CITY_COORDINATES)) {
         if (cleaned.includes(key) || key.includes(cleaned)) {
-          return { latLng: coords, resolvedName: locationStr };
+          return { latLng: coords, resolvedName: locationStr, isExact: false };
         }
       }
 
@@ -443,6 +475,111 @@
 
       const CSV_URL = 'https://docs.google.com/spreadsheets/d/1RexJFAEWRwNjzeGThutrA0zMObu2g4r3q0Vu0uiDbQs/gviz/tq?tqx=out:csv&sheet=Jobs';
 
+      // Background exact geocode worker for street-level precision and new locations
+      const geocodeExactAddresses = async (jobList) => {
+        let cache = {};
+        try {
+          cache = JSON.parse(localStorage.getItem('tttg_geo_cache') || '{}');
+        } catch (e) {
+          cache = {};
+        }
+
+        let updated = false;
+        const currentList = [...jobList];
+
+        for (let i = 0; i < currentList.length; i++) {
+          const item = currentList[i];
+          const locStr = (item.displayLocation || '').trim();
+          if (!locStr || locStr === 'Location on request') continue;
+
+          // If already in exact geocache
+          if (cache[locStr]) {
+            const cachedCoords = cache[locStr];
+            if (!item.coords || item.coords[0] !== cachedCoords[0] || item.coords[1] !== cachedCoords[1]) {
+              currentList[i] = { ...item, coords: cachedCoords };
+              updated = true;
+            }
+            continue;
+          }
+
+          // Check if it's an exact address (has numbers) or coords are missing
+          const needsGeocoding = /\d+/.test(locStr) || !item.coords;
+          if (needsGeocoding) {
+            try {
+              // Rate-limit to protect OpenStreetMap Nominatim
+              await new Promise(r => setTimeout(r, 650));
+              const nominatimUrl = `https://nominatim.openstreetmap.org/search?format=json&limit=1&countrycodes=ca,us&q=${encodeURIComponent(locStr)}`;
+              const res = await fetch(nominatimUrl, { headers: { 'Accept-Language': 'en' } });
+              const data = await res.json();
+              if (data && data.length > 0) {
+                const newCoords = [parseFloat(data[0].lat), parseFloat(data[0].lon)];
+                cache[locStr] = newCoords;
+                localStorage.setItem('tttg_geo_cache', JSON.stringify(cache));
+                currentList[i] = { ...item, coords: newCoords };
+                updated = true;
+                setJobs([...currentList]);
+              }
+            } catch (err) {
+              console.warn('Geocoding address failed for:', locStr, err);
+            }
+          }
+        }
+
+        if (updated) {
+          setJobs([...currentList]);
+        }
+      };
+
+      // Expands multi-location rows and resolves initial coordinates
+      const expandAndEnrichJobs = (rawRows) => {
+        const enriched = [];
+
+        rawRows.forEach((job, jobIdx) => {
+          let rawLoc = (job['Location'] || '').trim();
+          if (!rawLoc) {
+            const match = (job['Job Description'] || '').match(/Location:\s*([^\r\n,]+(?:,\s*[^\r\n]+)?)/i);
+            if (match && match[1]) rawLoc = match[1].trim();
+          }
+          if (!rawLoc) rawLoc = 'Location on request';
+
+          const locations = splitLocationString(rawLoc);
+
+          if (locations.length <= 1) {
+            const singleLoc = locations[0] || rawLoc;
+            const coordData = resolveCoordinates(singleLoc, job['Job Description']);
+            enriched.push({
+              ...job,
+              id: job['Job ID'] || `job_${jobIdx}`,
+              originalJobId: job['Job ID'],
+              coords: coordData ? coordData.latLng : null,
+              displayLocation: singleLoc,
+              rawLocation: rawLoc,
+              isMultiLocation: false,
+              allLocations: [singleLoc]
+            });
+          } else {
+            // Multi-site openings: Create separate branch entry for map & ranking
+            locations.forEach((branchLoc, branchIdx) => {
+              const coordData = resolveCoordinates(branchLoc, job['Job Description']);
+              enriched.push({
+                ...job,
+                id: `${job['Job ID'] || `job_${jobIdx}`}_b${branchIdx + 1}`,
+                originalJobId: job['Job ID'],
+                coords: coordData ? coordData.latLng : null,
+                displayLocation: branchLoc,
+                rawLocation: rawLoc,
+                isMultiLocation: true,
+                locationIndex: branchIdx + 1,
+                totalLocations: locations.length,
+                allLocations: locations
+              });
+            });
+          }
+        });
+
+        return enriched;
+      };
+
       // 1. Fetch Data
       const fetchJobs = async () => {
         setLoading(true);
@@ -466,29 +603,15 @@
             throw new Error('No active jobs found.');
           }
 
-          const enriched = activeJobs.map(job => {
-            const coordData = resolveCoordinates(job['Location'], job['Job Description']);
-            return {
-              ...job,
-              id: job['Job ID'] || Math.random().toString(),
-              coords: coordData ? coordData.latLng : null,
-              displayLocation: job['Location'] || (coordData ? coordData.resolvedName : 'Location on request')
-            };
-          });
-
+          const enriched = expandAndEnrichJobs(activeJobs);
           setJobs(enriched);
           setLastUpdated(new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
+
+          // Trigger asynchronous background precision geocoder for exact addresses
+          geocodeExactAddresses(enriched);
         } catch (err) {
           console.warn('Live fetch error, using mock data:', err.message);
-          const enrichedMock = MOCK_JOBS.map(job => {
-            const coordData = resolveCoordinates(job['Location'], job['Job Description']);
-            return {
-              ...job,
-              id: job['Job ID'],
-              coords: coordData ? coordData.latLng : null,
-              displayLocation: job['Location']
-            };
-          });
+          const enrichedMock = expandAndEnrichJobs(MOCK_JOBS);
           setJobs(enrichedMock);
           setError('Loaded cached records.');
           setLastUpdated(new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
@@ -589,6 +712,7 @@
             <div class="px-1 py-0.5">
               <p class="font-semibold text-stone-900 text-xs">${job['Job Title']}</p>
               <p class="text-stone-500 text-[10px]">${job['Company']}</p>
+              <p class="text-stone-700 text-[10px] mt-0.5 font-medium">📍 ${job.displayLocation}${job.isMultiLocation ? ` (Site ${job.locationIndex}/${job.totalLocations})` : ''}</p>
             </div>
           `, { direction: 'top', offset: [0, -28], opacity: 0.98, className: 'leaflet-popup-content-wrapper p-2' });
 
@@ -778,7 +902,10 @@
       };
 
       const copyJobPitch = (job) => {
-        const text = `📌 Role: ${job['Job Title']}\n🏢 Company: ${job['Company']}\n📍 Location: ${job['displayLocation']}\n💰 Comp: ${job['Compensation'] || 'Competitive'}\n👤 Recruiter: ${job['Owners']}\n\nOverview:\n${job['Job Description']?.slice(0, 350)}...`;
+        const otherSites = job.isMultiLocation && job.allLocations 
+          ? ` (Site ${job.locationIndex} of ${job.totalLocations} - Other sites: ${job.allLocations.filter(l => l !== job.displayLocation).join(', ')})`
+          : '';
+        const text = `📌 Role: ${job['Job Title']}\n🏢 Company: ${job['Company']}\n📍 Location: ${job['displayLocation']}${otherSites}\n💰 Comp: ${job['Compensation'] || 'Competitive'}\n👤 Recruiter: ${job['Owners']}\n\nOverview:\n${job['Job Description']?.slice(0, 350)}...`;
         navigator.clipboard.writeText(text);
         setCopiedId(job.id);
         setTimeout(() => setCopiedId(null), 2500);
@@ -855,7 +982,7 @@
               <div>
                 <div className="flex items-center gap-2">
                   <h1 className="font-bold text-sm text-stone-900 tracking-tight">Top Tier Talent</h1>
-                  <span className="bg-stone-100 text-stone-700 text-[11px] px-2 py-0.5 rounded-full font-medium border border-stone-200">Radar v2.2</span>
+                  <span className="bg-stone-100 text-stone-700 text-[11px] px-2 py-0.5 rounded-full font-medium border border-stone-200">Radar v2.4</span>
                 </div>
                 <p className="text-[11px] text-stone-500 hidden sm:block">Proximity recruiter search & distance calculator</p>
               </div>
@@ -1094,6 +1221,11 @@
                             <span>📌</span>
                             <span className="font-medium">{job.displayLocation}</span>
                           </div>
+                          {job.isMultiLocation && (
+                            <span className="bg-stone-100 border border-stone-200/80 text-stone-600 text-[10px] px-1.5 py-0.5 rounded font-medium">
+                              Site {job.locationIndex} of {job.totalLocations}
+                            </span>
+                          )}
                           {job.distance !== null && (
                             <span className="bg-stone-100 border border-stone-200 text-stone-800 text-[11px] px-2 py-0.5 rounded-full font-semibold">
                               📍 {job.distance} {unit} away
@@ -1202,6 +1334,11 @@
                       <div>
                         <span className="text-stone-400 text-[10px] block">Location</span>
                         <span className="font-semibold text-stone-900">{selectedJob.displayLocation}</span>
+                        {selectedJob.isMultiLocation && (
+                          <span className="block text-[10px] text-stone-500 font-normal">
+                            Site {selectedJob.locationIndex} of {selectedJob.totalLocations}
+                          </span>
+                        )}
                       </div>
                       <div>
                         <span className="text-stone-400 text-[10px] block">Compensation</span>
@@ -1215,6 +1352,12 @@
                         <span className="text-stone-400 text-[10px] block">Owner(s)</span>
                         <span className="font-medium text-stone-900">{selectedJob['Owners'] || 'N/A'}</span>
                       </div>
+                      {selectedJob.isMultiLocation && selectedJob.allLocations && (
+                        <div className="col-span-2 pt-1 border-t border-stone-200/50">
+                          <span className="text-stone-400 text-[10px] block">All Opening Locations ({selectedJob.totalLocations})</span>
+                          <span className="text-stone-800 font-medium text-[11px]">{selectedJob.allLocations.join(' • ')}</span>
+                        </div>
+                      )}
                       {selectedJob['Client Contact'] && (
                         <div className="col-span-2 pt-1 border-t border-stone-200/50">
                           <span className="text-stone-400 text-[10px] block">Client Contact</span>
