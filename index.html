@@ -4,28 +4,35 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="robots" content="noindex, nofollow" />
-  <title>Top Tier Talent Group | Active Jobs Map & Distance Finder</title>
+  <title>Top Tier Talent Group | Active Jobs Radar</title>
   
+  <!-- Google Fonts: Inter & JetBrains Mono -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+
   <!-- Tailwind CSS -->
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
     tailwind.config = {
-      darkMode: 'class',
       theme: {
         extend: {
+          fontFamily: {
+            sans: ['Inter', 'system-ui', '-apple-system', 'sans-serif'],
+            mono: ['JetBrains Mono', 'Menlo', 'monospace'],
+          },
           colors: {
-            brand: {
-              50: '#f0fdf4',
-              100: '#dcfce7',
-              500: '#22c55e',
-              600: '#16a34a',
-              700: '#15803d',
-              900: '#14532d',
-            },
-            darkbg: {
-              800: '#1e293b',
-              900: '#0f172a',
-              950: '#020617',
+            stone: {
+              50: '#FAF9F6',
+              100: '#F5F3EF',
+              200: '#E8E5DF',
+              300: '#D6D1C7',
+              400: '#A8A194',
+              500: '#787165',
+              600: '#575249',
+              700: '#443F38',
+              800: '#2B2723',
+              900: '#1C1916',
             }
           }
         }
@@ -37,21 +44,23 @@
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
 
-  <!-- Lucide Icons -->
-  <script src="https://unpkg.com/lucide@latest"></script>
-
-  <!-- React 18 & Babel for direct in-browser compilation -->
+  <!-- React 18 & Babel -->
   <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
   <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 
   <style>
-    /* Custom Leaflet styling */
+    body {
+      font-family: 'Inter', -apple-system, sans-serif;
+    }
+    /* Leaflet popup & tooltip styling for clean executive theme */
     .leaflet-popup-content-wrapper {
       padding: 0;
-      border-radius: 12px;
+      border-radius: 16px;
       overflow: hidden;
-      box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.2), 0 8px 10px -6px rgba(0, 0, 0, 0.2);
+      box-shadow: 0 12px 30px -6px rgba(28, 25, 22, 0.12), 0 4px 12px -2px rgba(28, 25, 22, 0.08);
+      border: 1px solid #E8E5DF;
+      background: #FFFFFF;
     }
     .leaflet-popup-content {
       margin: 0 !important;
@@ -59,35 +68,49 @@
     }
     .leaflet-container {
       font-family: inherit;
+      background: #F5F3EF;
     }
-    /* Custom pulsing marker */
-    .search-pulse {
-      box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.7);
-      animation: pulse-ring 1.8s infinite cubic-bezier(0.66, 0, 0, 1);
+    .custom-tooltip {
+      background: #1C1916 !important;
+      color: #FFFFFF !important;
+      border: none !important;
+      border-radius: 8px !important;
+      padding: 6px 10px !important;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15) !important;
+      font-size: 11px !important;
+      font-weight: 500 !important;
+    }
+    .custom-tooltip::before {
+      border-top-color: #1C1916 !important;
+    }
+    /* Candidate search pulse animation */
+    .candidate-pulse {
+      box-shadow: 0 0 0 0 rgba(43, 39, 35, 0.5);
+      animation: pulse-ring 2s infinite cubic-bezier(0.66, 0, 0, 1);
     }
     @keyframes pulse-ring {
       to {
-        box-shadow: 0 0 0 24px rgba(59, 130, 246, 0);
+        box-shadow: 0 0 0 24px rgba(43, 39, 35, 0);
       }
     }
-    /* Custom scrollbar */
+    /* Refined scrollbar */
     ::-webkit-scrollbar {
-      width: 6px;
-      height: 6px;
+      width: 5px;
+      height: 5px;
     }
     ::-webkit-scrollbar-track {
       background: transparent;
     }
     ::-webkit-scrollbar-thumb {
-      background: rgba(156, 163, 175, 0.5);
-      border-radius: 4px;
+      background: #D6D1C7;
+      border-radius: 9999px;
     }
     ::-webkit-scrollbar-thumb:hover {
-      background: rgba(107, 114, 128, 0.8);
+      background: #A8A194;
     }
   </style>
 </head>
-<body class="bg-slate-950 text-slate-100 antialiased overflow-hidden selection:bg-emerald-500 selection:text-white">
+<body class="bg-stone-100 text-stone-900 antialiased overflow-hidden selection:bg-stone-900 selection:text-white">
   <div id="root"></div>
 
   <script type="text/babel">
@@ -151,7 +174,7 @@
       {
         "Job ID": "3677925",
         "Job Title": "Mold Maker",
-        "Company": "Tycos Tool & Die, A division of Magna International",
+        "Company": "Tycos Tool & Die, Magna International",
         "Client Contact": "Melanie Francis",
         "Location": "Windsor, ON",
         "Compensation": "35/hr - 39.38/hr",
@@ -166,11 +189,11 @@
         "Company": "Discount Tire & Service Centers",
         "Client Contact": "Tansya Murillo, Donna Clark",
         "Location": "Anaheim, CA",
-        "Compensation": "$120k/yr + bonus",
+        "Compensation": "$120,000/yr + bonus",
         "Date Opened": "2026-09-16",
         "Owners": "Ja",
         "Status": "Active",
-        "Job Description": "Marketing Director\n\nLocation: Anaheim, California.\nWork Arrangement: Onsite.\nCompensation: $120,000 annually + performance-based bonus.\nOversee digital marketing, brand development, customer acquisition across multi-location network."
+        "Job Description": "Marketing Director\n\nLocation: Anaheim, California.\nWork Arrangement: Onsite.\nCompensation: $120,000 annually + performance bonus.\nLead marketing strategy across multi-location organization."
       },
       {
         "Job ID": "3671343",
@@ -178,11 +201,11 @@
         "Company": "Discount Tire & Service Centers",
         "Client Contact": "Tansya Murillo, Donna Clark",
         "Location": "Anaheim, CA",
-        "Compensation": "200k/yr - 220k/yr",
+        "Compensation": "$200,000 - $220,000/yr",
         "Date Opened": "2026-09-14",
         "Owners": "Ja, Sarah",
         "Status": "Active",
-        "Job Description": "Multi-Site Operations - VP\n\nLocation: Anaheim, CA.\nMandate: Help a fast-growing automotive service business strengthen, operationalize, and scale multi-site operations across retail network."
+        "Job Description": "Multi-Site Operations - VP\n\nLocation: Anaheim, CA.\nLead District Managers, multi-site store operations, inventory controls, and EBITDA growth."
       },
       {
         "Job ID": "3661896",
@@ -190,7 +213,7 @@
         "Company": "Discount Tire & Service Centers",
         "Client Contact": "Donald Carter, Donna Clark",
         "Location": "Anaheim, CA",
-        "Compensation": "27/hr - 32/hr",
+        "Compensation": "$27 - $32/hr",
         "Date Opened": "2026-08-28",
         "Owners": "Candice, Ja, Lyn",
         "Status": "Active",
@@ -202,7 +225,7 @@
         "Company": "Lumentis",
         "Client Contact": "Engineering Dept",
         "Location": "Belleville, ON",
-        "Compensation": "100k/yr - 130k/yr",
+        "Compensation": "$100,000 - $130,000/yr",
         "Date Opened": "2026-08-17",
         "Owners": "Ja, Sarah",
         "Status": "Active",
@@ -212,7 +235,7 @@
 
     // --- HAVERSINE DISTANCE FORMULA ---
     function calculateDistance(lat1, lon1, lat2, lon2, unit = 'km') {
-      const R = unit === 'mi' ? 3958.8 : 6371; // Earth radius in mi or km
+      const R = unit === 'mi' ? 3958.8 : 6371;
       const dLat = (lat2 - lat1) * (Math.PI / 180);
       const dLon = (lon2 - lon1) * (Math.PI / 180);
       const a =
@@ -274,10 +297,9 @@
       });
     }
 
-    // Normalizes location text and tries coordinate lookup
+    // Normalizes location text and resolves coordinates
     function resolveCoordinates(locationStr, jobDescription = '') {
       if (!locationStr || locationStr.trim() === '') {
-        // Fallback: search in description
         const match = jobDescription.match(/Location:\s*([^\r\n,]+(?:,\s*[^\r\n]+)?)/i);
         if (match && match[1]) {
           locationStr = match[1].trim();
@@ -288,12 +310,10 @@
 
       const cleaned = locationStr.toLowerCase().replace(/[^\w\s,]/g, '').trim();
       
-      // Direct dictionary check
       if (CITY_COORDINATES[cleaned]) {
         return { latLng: CITY_COORDINATES[cleaned], resolvedName: locationStr };
       }
 
-      // Check partial matches
       for (const [key, coords] of Object.entries(CITY_COORDINATES)) {
         if (cleaned.includes(key) || key.includes(cleaned)) {
           return { latLng: coords, resolvedName: locationStr };
@@ -303,7 +323,7 @@
       return null;
     }
 
-    // --- JSONP GOOGLE SHEETS FETCHER (Zero CORS restrictions) ---
+    // --- JSONP GOOGLE SHEETS FETCHER ---
     function fetchSheetViaJSONP(sheetId, sheetName) {
       return new Promise((resolve, reject) => {
         const callbackName = 'sheetCallback_' + Math.round(100000 * Math.random());
@@ -348,7 +368,7 @@
       const [isAuthenticated, setIsAuthenticated] = useState(() => localStorage.getItem('tttg_radar_auth') === 'true');
       const [inputPasscode, setInputPasscode] = useState('');
       const [passError, setPassError] = useState(false);
-      const ACCESS_PASSCODE = 'TTTG2026'; // Private team passcode
+      const ACCESS_PASSCODE = 'TTTG2026';
 
       const handleUnlock = (e) => {
         if (e) e.preventDefault();
@@ -384,7 +404,7 @@
 
       // Selection & Drawer State
       const [selectedJob, setSelectedJob] = useState(null);
-      const [activeTab, setActiveTab] = useState('both'); // 'both' | 'map' | 'list' for responsive
+      const [activeTab, setActiveTab] = useState('both');
       const [copiedId, setCopiedId] = useState(null);
 
       // Map references
@@ -396,14 +416,13 @@
 
       const CSV_URL = 'https://docs.google.com/spreadsheets/d/1RexJFAEWRwNjzeGThutrA0zMObu2g4r3q0Vu0uiDbQs/gviz/tq?tqx=out:csv&sheet=Jobs';
 
-      // 1. Fetch and Parse Data with JSONP & CSV support
+      // 1. Fetch Data
       const fetchJobs = async () => {
         setLoading(true);
         setError(null);
         try {
           let activeJobs = [];
           
-          // Try JSONP loader first (bypasses CORS restrictions on file:// and web)
           try {
             const rawRows = await fetchSheetViaJSONP('1RexJFAEWRwNjzeGThutrA0zMObu2g4r3q0Vu0uiDbQs', 'Jobs');
             activeJobs = rawRows.filter(j => (j['Status'] || '').toLowerCase() === 'active');
@@ -420,7 +439,6 @@
             throw new Error('No active jobs found.');
           }
 
-          // Process and resolve coordinates
           const enriched = activeJobs.map(job => {
             const coordData = resolveCoordinates(job['Location'], job['Job Description']);
             return {
@@ -432,9 +450,9 @@
           });
 
           setJobs(enriched);
-          setLastUpdated(new Date().toLocaleTimeString());
+          setLastUpdated(new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
         } catch (err) {
-          console.warn('Live fetch error, falling back to mock jobs:', err.message);
+          console.warn('Live fetch error, using mock data:', err.message);
           const enrichedMock = MOCK_JOBS.map(job => {
             const coordData = resolveCoordinates(job['Location'], job['Job Description']);
             return {
@@ -445,23 +463,24 @@
             };
           });
           setJobs(enrichedMock);
-          setError('Loaded cached records. Check connection or sheet permissions.');
-          setLastUpdated(new Date().toLocaleTimeString());
+          setError('Loaded cached records.');
+          setLastUpdated(new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
         } finally {
           setLoading(false);
         }
       };
 
       useEffect(() => {
-        fetchJobs();
-      }, []);
+        if (isAuthenticated) {
+          fetchJobs();
+        }
+      }, [isAuthenticated]);
 
-      // 2. Initialize Leaflet Map
+      // 2. Initialize Leaflet Map with Refined Executive Styling
       useEffect(() => {
-        if (!mapContainerRef.current) return;
+        if (!isAuthenticated || !mapContainerRef.current) return;
 
         if (!mapInstanceRef.current) {
-          // Initialize map centered over Southern Ontario / Canada corridor
           const map = L.map(mapContainerRef.current, {
             center: [43.9, -79.8],
             zoom: 7,
@@ -470,7 +489,7 @@
 
           L.control.zoom({ position: 'bottomright' }).addTo(map);
 
-          // High-performance ESRI World Street Map (Free, no keys, no 403 blocks on file://)
+          // ESRI World Street Map (Warm, crisp, corporate grade)
           L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}', {
             attribution: 'Tiles &copy; Esri &mdash; Top Tier Talent Group',
             maxZoom: 18
@@ -478,18 +497,13 @@
 
           mapInstanceRef.current = map;
         }
+      }, [isAuthenticated]);
 
-        return () => {
-          // Cleanup on unmount if needed
-        };
-      }, []);
-
-      // 3. Update Markers when jobs or selection change
+      // 3. Update Markers with Warm Executive Pin Design
       useEffect(() => {
         const map = mapInstanceRef.current;
         if (!map) return;
 
-        // Clear existing markers
         Object.values(markersRef.current).forEach(m => map.removeLayer(m));
         markersRef.current = {};
 
@@ -502,35 +516,33 @@
 
           const isSelected = selectedJob && selectedJob.id === job.id;
 
-          // Custom modern SVG Marker Pin
+          // Elegant Executive Marker (Stone 900 + warm badge)
           const iconHtml = `
-            <div class="relative group cursor-pointer transform transition-transform duration-200 ${isSelected ? 'scale-125 z-50' : 'hover:scale-110'}">
-              <div class="w-9 h-9 rounded-full ${isSelected ? 'bg-emerald-500 ring-4 ring-emerald-300' : 'bg-slate-900 border-2 border-emerald-500'} flex items-center justify-center shadow-lg text-white font-bold text-xs">
-                <span>💼</span>
+            <div class="relative group cursor-pointer transform transition-all duration-200 ${isSelected ? 'scale-125 z-50' : 'hover:scale-110'}">
+              <div class="w-8 h-8 rounded-full ${isSelected ? 'bg-stone-900 ring-4 ring-stone-400 text-white' : 'bg-white border-2 border-stone-800 text-stone-900 shadow-md'} flex items-center justify-center font-bold text-xs">
+                <span class="text-xs">💼</span>
               </div>
-              ${isSelected ? '<div class="absolute -bottom-1 left-1/2 -translate-x-1/2 w-2 h-2 bg-emerald-500 rotate-45"></div>' : ''}
+              <div class="absolute -bottom-1 left-1/2 -translate-x-1/2 w-1.5 h-1.5 ${isSelected ? 'bg-stone-900' : 'bg-stone-800'} rotate-45"></div>
             </div>
           `;
 
           const customIcon = L.divIcon({
             html: iconHtml,
             className: 'custom-job-pin',
-            iconSize: [36, 36],
-            iconAnchor: [18, 36],
-            popupAnchor: [0, -36]
+            iconSize: [32, 32],
+            iconAnchor: [16, 32],
+            popupAnchor: [0, -32]
           });
 
           const marker = L.marker([lat, lng], { icon: customIcon });
 
-          // Tooltip on Hover
           marker.bindTooltip(`
-            <div class="text-xs font-semibold text-slate-800">
-              <p class="text-emerald-600 font-bold">${job['Job Title']}</p>
-              <p class="text-slate-500">${job['Company']}</p>
+            <div class="px-1 py-0.5">
+              <p class="font-semibold text-stone-900 text-xs">${job['Job Title']}</p>
+              <p class="text-stone-500 text-[10px]">${job['Company']}</p>
             </div>
-          `, { direction: 'top', offset: [0, -30], opacity: 0.95 });
+          `, { direction: 'top', offset: [0, -28], opacity: 0.98, className: 'leaflet-popup-content-wrapper p-2' });
 
-          // Click Handler
           marker.on('click', () => {
             setSelectedJob(job);
             const el = document.getElementById(`job-card-${job.id}`);
@@ -543,16 +555,16 @@
           markersRef.current[job.id] = marker;
         });
 
-        // Default focus on Ontario / Canada region
+        // Focus Ontario on initial load
         const ontarioBounds = bounds.filter(([lat, lng]) => lat >= 41.5 && lat <= 46.5 && lng >= -84.0 && lng <= -74.0);
         if (ontarioBounds.length > 0 && !searchCoords && !selectedJob) {
           map.fitBounds(ontarioBounds, { padding: [50, 50], maxZoom: 8 });
         } else if (!searchCoords && !selectedJob) {
           map.setView([43.9, -79.8], 7);
         }
-      }, [jobs, selectedJob, searchCoords]);
+      }, [jobs, selectedJob, searchCoords, isAuthenticated]);
 
-      // 4. Geocode Location Search Query (Nominatim Fallback + Dictionary)
+      // 4. Geocode Location Search
       const handleLocationSearch = async (e) => {
         if (e) e.preventDefault();
         if (!searchQuery.trim()) {
@@ -577,7 +589,6 @@
           let coords = null;
           let displayName = searchQuery;
 
-          // Check built-in dictionary first
           for (const [key, val] of Object.entries(CITY_COORDINATES)) {
             if (cleanQuery === key || cleanQuery.includes(key) || key.includes(cleanQuery)) {
               coords = val;
@@ -586,7 +597,6 @@
             }
           }
 
-          // Fallback to OpenStreetMap Nominatim
           if (!coords) {
             const nominatimUrl = `https://nominatim.openstreetmap.org/search?format=json&limit=1&q=${encodeURIComponent(searchQuery)}`;
             const res = await fetch(nominatimUrl, { headers: { 'Accept-Language': 'en' } });
@@ -601,7 +611,6 @@
             setSearchCoords(coords);
             setSearchAddressName(displayName);
 
-            // Update candidate search marker on map
             if (map) {
               if (searchMarkerRef.current) map.removeLayer(searchMarkerRef.current);
               if (radiusCircleRef.current) map.removeLayer(radiusCircleRef.current);
@@ -609,7 +618,7 @@
               const searchIcon = L.divIcon({
                 html: `
                   <div class="relative flex items-center justify-center">
-                    <div class="w-8 h-8 rounded-full bg-blue-600 border-2 border-white shadow-xl flex items-center justify-center text-white text-sm font-bold search-pulse">
+                    <div class="w-8 h-8 rounded-full bg-stone-900 border-2 border-white shadow-xl flex items-center justify-center text-white text-xs font-bold candidate-pulse">
                       📍
                     </div>
                   </div>
@@ -620,36 +629,35 @@
               });
 
               searchMarkerRef.current = L.marker(coords, { icon: searchIcon, zIndexOffset: 1000 })
-                .bindTooltip(`<b>Candidate Location</b><br/>${displayName}`, { permanent: true, direction: 'bottom', offset: [0, 10] })
+                .bindTooltip(`<b>Candidate Location</b><br/>${displayName}`, { permanent: true, direction: 'bottom', offset: [0, 10], className: 'custom-tooltip' })
                 .addTo(map);
 
-              // Draw radius circle if selected
               if (maxRadius !== 'ALL') {
                 const radiusMeters = parseInt(maxRadius) * (unit === 'mi' ? 1609.34 : 1000);
                 radiusCircleRef.current = L.circle(coords, {
                   radius: radiusMeters,
-                  color: '#3b82f6',
-                  fillColor: '#60a5fa',
-                  fillOpacity: 0.12,
-                  weight: 2,
-                  dashArray: '5, 8'
+                  color: '#2B2723',
+                  fillColor: '#787165',
+                  fillOpacity: 0.1,
+                  weight: 1.5,
+                  dashArray: '4, 6'
                 }).addTo(map);
               }
 
-              map.flyTo(coords, 9, { duration: 1.2 });
+              map.flyTo(coords, 9, { duration: 1 });
             }
           } else {
-            alert(`Location "${searchQuery}" not found. Try adding city and province/state (e.g., "London, ON").`);
+            alert(`Location "${searchQuery}" not found. Try including city & province/state (e.g., "London, ON").`);
           }
         } catch (err) {
           console.error('Geocoding error:', err);
-          alert('Error resolving location. Please try another search term.');
+          alert('Error resolving location.');
         } finally {
           setIsSearchingLocation(false);
         }
       };
 
-      // 5. Unique Owners for Filter
+      // 5. Unique Owners
       const uniqueOwners = useMemo(() => {
         const ownersSet = new Set();
         jobs.forEach(j => {
@@ -660,7 +668,7 @@
         return Array.from(ownersSet).sort();
       }, [jobs]);
 
-      // 6. Filter & Calculate Distances + Sort
+      // 6. Filter & Sort Jobs
       const processedJobs = useMemo(() => {
         return jobs
           .map(job => {
@@ -677,7 +685,6 @@
             return { ...job, distance };
           })
           .filter(job => {
-            // Keyword filter
             if (keywordFilter.trim()) {
               const kw = keywordFilter.toLowerCase();
               const matchTitle = (job['Job Title'] || '').toLowerCase().includes(kw);
@@ -687,13 +694,11 @@
               if (!matchTitle && !matchCompany && !matchLoc && !matchDesc) return false;
             }
 
-            // Owner filter
             if (selectedOwner !== 'ALL') {
               const owners = (job['Owners'] || '').split(',').map(o => o.trim());
               if (!owners.includes(selectedOwner)) return false;
             }
 
-            // Radius filter
             if (searchCoords && maxRadius !== 'ALL' && job.distance !== null) {
               if (job.distance > parseInt(maxRadius)) return false;
             }
@@ -706,11 +711,10 @@
               if (b.distance === null) return -1;
               return a.distance - b.distance;
             }
-            return 0; // maintain original order
+            return 0;
           });
       }, [jobs, searchCoords, keywordFilter, selectedOwner, maxRadius, unit]);
 
-      // Center map on job card click
       const handleSelectJob = (job) => {
         setSelectedJob(job);
         if (job.coords && mapInstanceRef.current) {
@@ -722,32 +726,32 @@
         }
       };
 
-      // Copy Job Pitch to Clipboard
       const copyJobPitch = (job) => {
-        const text = `📌 Role: ${job['Job Title']}\n🏢 Company: ${job['Company']}\n📍 Location: ${job['displayLocation']}\n💰 Comp: ${job['Compensation'] || 'Competitive'}\n👤 Recruiter: ${job['Owners']}\n\nDescription:\n${job['Job Description']?.slice(0, 400)}...`;
+        const text = `📌 Role: ${job['Job Title']}\n🏢 Company: ${job['Company']}\n📍 Location: ${job['displayLocation']}\n💰 Comp: ${job['Compensation'] || 'Competitive'}\n👤 Recruiter: ${job['Owners']}\n\nOverview:\n${job['Job Description']?.slice(0, 350)}...`;
         navigator.clipboard.writeText(text);
         setCopiedId(job.id);
         setTimeout(() => setCopiedId(null), 2500);
       };
 
-      // If not authenticated, render private lock screen
+      // LOCK SCREEN (Refined Warm Stone Aesthetic)
       if (!isAuthenticated) {
         return (
-          <div className="flex items-center justify-center min-h-screen bg-slate-950 p-4 font-sans">
-            <div className="w-full max-w-md bg-slate-900/90 border border-slate-800 rounded-3xl p-8 shadow-2xl backdrop-blur text-center space-y-6">
+          <div className="flex items-center justify-center min-h-screen bg-[#FBF9F5] p-4 font-sans">
+            <div className="w-full max-w-md bg-white border border-stone-200 rounded-3xl p-8 shadow-xl shadow-stone-200/50 text-center space-y-6">
               
-              <div className="w-16 h-16 bg-gradient-to-tr from-emerald-600 to-teal-400 rounded-2xl mx-auto flex items-center justify-center text-3xl shadow-lg shadow-emerald-950/50">
+              <div className="w-14 h-14 bg-stone-100 border border-stone-200 rounded-2xl mx-auto flex items-center justify-center text-2xl shadow-sm text-stone-800">
                 🔒
               </div>
 
               <div>
-                <h1 className="text-xl font-bold text-white tracking-tight">Top Tier Talent Group</h1>
-                <p className="text-xs text-slate-400 mt-1">Private Jobs Map & Candidate Distance Radar</p>
+                <span className="text-[10px] font-mono uppercase tracking-widest text-stone-400 font-semibold">Protected Portal</span>
+                <h1 className="text-xl font-bold text-stone-900 tracking-tight mt-1">Top Tier Talent Group</h1>
+                <p className="text-xs text-stone-500 mt-1">Active Jobs Radar & Distance Search</p>
               </div>
 
-              <form onSubmit={handleUnlock} className="space-y-4">
-                <div className="text-left">
-                  <label className="block text-[11px] font-semibold text-slate-400 uppercase tracking-wider mb-1.5">
+              <form onSubmit={handleUnlock} className="space-y-4 text-left">
+                <div>
+                  <label className="block text-[11px] font-medium text-stone-600 mb-1.5">
                     Recruiter Passcode
                   </label>
                   <input
@@ -759,88 +763,90 @@
                       setInputPasscode(e.target.value);
                       if (passError) setPassError(false);
                     }}
-                    className={`w-full px-4 py-3 bg-slate-950 border ${
-                      passError ? 'border-rose-500 focus:ring-rose-500' : 'border-slate-700 focus:border-emerald-500'
-                    } rounded-xl text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 text-sm transition`}
+                    className={`w-full px-4 py-2.5 bg-stone-50 border ${
+                      passError ? 'border-rose-400 focus:ring-rose-200' : 'border-stone-200 focus:border-stone-800'
+                    } rounded-xl text-stone-900 placeholder-stone-400 focus:outline-none focus:ring-2 focus:ring-stone-200 text-sm transition`}
                   />
                   {passError && (
-                    <p className="text-rose-400 text-xs mt-1.5 flex items-center gap-1">
-                      <span>⚠️</span> Invalid passcode. Please try again.
+                    <p className="text-rose-600 text-xs mt-1.5 flex items-center gap-1">
+                      <span>⚠️</span> Incorrect passcode. Please try again.
                     </p>
                   )}
                 </div>
 
                 <button
                   type="submit"
-                  className="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-semibold py-3 rounded-xl text-sm transition shadow-lg shadow-emerald-950/40"
+                  className="w-full bg-stone-900 hover:bg-stone-800 text-white font-medium py-2.5 rounded-xl text-sm transition shadow-sm"
                 >
                   Unlock Live Radar &rarr;
                 </button>
               </form>
 
-              <p className="text-[11px] text-slate-500">
-                Protected recruiter link &bull; Not indexed by search engines
-              </p>
+              <div className="pt-2 border-t border-stone-100">
+                <p className="text-[11px] text-stone-400">
+                  Confidential &bull; JA Studio Consulting
+                </p>
+              </div>
             </div>
           </div>
         );
       }
 
       return (
-        <div className="flex flex-col h-screen w-screen overflow-hidden bg-slate-950 font-sans">
+        <div className="flex flex-col h-screen w-screen overflow-hidden bg-[#FAF9F6] font-sans text-stone-900">
           
-          {/* HEADER / NAVIGATION */}
-          <header className="h-16 border-b border-slate-800 bg-slate-900/90 backdrop-blur px-4 flex items-center justify-between shrink-0 z-30">
+          {/* EXECUTIVE HEADER */}
+          <header className="h-16 border-b border-stone-200 bg-white/90 backdrop-blur px-4 lg:px-6 flex items-center justify-between shrink-0 z-30">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-emerald-600 to-teal-400 flex items-center justify-center shadow-lg shadow-emerald-900/30">
-                <span className="text-xl">🗺️</span>
+              <div className="w-9 h-9 rounded-xl bg-stone-900 flex items-center justify-center shadow-sm text-white text-base">
+                💼
               </div>
               <div>
                 <div className="flex items-center gap-2">
-                  <h1 className="font-bold text-base text-white tracking-tight">Top Tier Talent</h1>
-                  <span className="bg-emerald-500/20 text-emerald-400 text-xs px-2 py-0.5 rounded-full font-medium border border-emerald-500/30">Active Jobs Map</span>
+                  <h1 className="font-bold text-sm text-stone-900 tracking-tight">Top Tier Talent</h1>
+                  <span className="bg-stone-100 text-stone-700 text-[11px] px-2 py-0.5 rounded-full font-medium border border-stone-200">Active Radar</span>
                 </div>
-                <p className="text-xs text-slate-400 hidden sm:block">Real-time candidate radius search & distance ranking</p>
+                <p className="text-[11px] text-stone-500 hidden sm:block">Proximity recruiter search & distance calculator</p>
               </div>
             </div>
 
-            {/* Quick Status & Refresh & Lock */}
-            <div className="flex items-center gap-3">
-              <div className="hidden md:flex items-center gap-2 bg-slate-800/80 px-3 py-1.5 rounded-lg border border-slate-700 text-xs text-slate-300">
-                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
+            {/* Quick Status & Actions */}
+            <div className="flex items-center gap-2.5">
+              <div className="hidden md:flex items-center gap-2 bg-stone-50 px-3 py-1 rounded-lg border border-stone-200 text-xs text-stone-600">
+                <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
                 <span><b>{jobs.length}</b> Active Roles</span>
-                {lastUpdated && <span className="text-slate-500">| Synced {lastUpdated}</span>}
+                {lastUpdated && <span className="text-stone-400">| Synced {lastUpdated}</span>}
               </div>
 
               <button
                 onClick={fetchJobs}
                 title="Sync live from Google Sheets"
-                className="flex items-center gap-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 px-3 py-1.5 rounded-lg text-xs font-medium border border-slate-700 transition"
+                className="flex items-center gap-1.5 bg-stone-50 hover:bg-stone-100 text-stone-700 px-3 py-1.5 rounded-lg text-xs font-medium border border-stone-200 transition shadow-sm"
               >
                 <span>🔄</span>
-                <span className="hidden sm:inline">Refresh Sheet</span>
+                <span className="hidden sm:inline">Refresh</span>
               </button>
 
               <button
                 onClick={handleLock}
                 title="Lock Dashboard"
-                className="flex items-center gap-1.5 bg-slate-800/80 hover:bg-rose-900/40 text-slate-400 hover:text-rose-300 px-2.5 py-1.5 rounded-lg text-xs font-medium border border-slate-700 transition"
+                className="flex items-center gap-1.5 bg-stone-50 hover:bg-rose-50 text-stone-500 hover:text-rose-700 px-2.5 py-1.5 rounded-lg text-xs font-medium border border-stone-200 transition"
               >
                 <span>🔒</span>
                 <span className="hidden sm:inline">Lock</span>
               </button>
 
               {/* Mobile View Toggle */}
-              <div className="flex lg:hidden bg-slate-800 p-0.5 rounded-lg border border-slate-700 text-xs">
+              <div className="flex lg:hidden bg-stone-100 p-0.5 rounded-lg border border-stone-200 text-xs">
                 <button
                   onClick={() => setActiveTab('map')}
-                  className={`px-3 py-1 rounded-md transition ${activeTab === 'map' ? 'bg-emerald-600 text-white' : 'text-slate-400'}`}
+                  className={`px-3 py-1 rounded-md transition ${activeTab === 'map' ? 'bg-white shadow text-stone-900 font-semibold' : 'text-stone-500'}`}
                 >
                   Map
                 </button>
                 <button
                   onClick={() => setActiveTab('list')}
-                  className={`px-3 py-1 rounded-md transition ${activeTab === 'list' ? 'bg-emerald-600 text-white' : 'text-slate-400'}`}
+                  className={`px-3 py-1 rounded-md transition ${activeTab === 'list' ? 'bg-white shadow text-stone-900 font-semibold' : 'text-stone-500'}`}
                 >
                   List ({processedJobs.length})
                 </button>
@@ -849,18 +855,18 @@
           </header>
 
           {/* SEARCH & FILTERS BAR */}
-          <div className="border-b border-slate-800 bg-slate-900/60 p-3 shrink-0 z-20">
+          <div className="border-b border-stone-200 bg-stone-50/70 p-3 shrink-0 z-20">
             <div className="max-w-7xl mx-auto flex flex-wrap items-center gap-2 sm:gap-3">
               
-              {/* Location Distance Search Form */}
+              {/* Proximity Location Input */}
               <form onSubmit={handleLocationSearch} className="flex-1 min-w-[280px] flex items-center relative">
-                <div className="absolute left-3 text-slate-400 text-sm">📍</div>
+                <div className="absolute left-3 text-stone-400 text-sm">📍</div>
                 <input
                   type="text"
-                  placeholder="Type candidate location (e.g. Detroit, Windsor, London ON)..."
+                  placeholder="Candidate city / postal (e.g. Detroit, Windsor, London ON)..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full pl-9 pr-24 py-2 bg-slate-800 border border-slate-700 focus:border-emerald-500 rounded-lg text-sm text-white placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-emerald-500 transition"
+                  className="w-full pl-9 pr-24 py-2 bg-white border border-stone-200 focus:border-stone-800 rounded-xl text-xs sm:text-sm text-stone-900 placeholder-stone-400 focus:outline-none focus:ring-1 focus:ring-stone-800 shadow-sm transition"
                 />
                 <div className="absolute right-1.5 flex items-center gap-1">
                   {searchCoords && (
@@ -871,7 +877,7 @@
                         setSearchCoords(null);
                         setSearchAddressName('');
                       }}
-                      className="text-xs text-slate-400 hover:text-white px-1.5 py-1"
+                      className="text-xs text-stone-400 hover:text-stone-700 px-1.5 py-1"
                     >
                       ✕
                     </button>
@@ -879,24 +885,24 @@
                   <button
                     type="submit"
                     disabled={isSearchingLocation}
-                    className="bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white px-3 py-1 rounded-md text-xs font-semibold shadow transition flex items-center gap-1"
+                    className="bg-stone-900 hover:bg-stone-800 disabled:opacity-50 text-white px-3 py-1 rounded-lg text-xs font-medium shadow-sm transition"
                   >
-                    {isSearchingLocation ? 'Finding...' : 'Rank Distance'}
+                    {isSearchingLocation ? 'Finding...' : 'Rank Proximity'}
                   </button>
                 </div>
               </form>
 
               {/* Keyword Filter */}
-              <div className="w-44 shrink-0 relative">
+              <div className="w-40 shrink-0 relative">
                 <input
                   type="text"
-                  placeholder="Filter title/skill..."
+                  placeholder="Filter role/skill..."
                   value={keywordFilter}
                   onChange={(e) => setKeywordFilter(e.target.value)}
-                  className="w-full px-3 py-2 bg-slate-800 border border-slate-700 focus:border-emerald-500 rounded-lg text-sm text-white placeholder-slate-400 focus:outline-none text-xs"
+                  className="w-full px-3 py-2 bg-white border border-stone-200 focus:border-stone-800 rounded-xl text-xs text-stone-900 placeholder-stone-400 focus:outline-none shadow-sm"
                 />
                 {keywordFilter && (
-                  <button onClick={() => setKeywordFilter('')} className="absolute right-2.5 top-2 text-xs text-slate-400">✕</button>
+                  <button onClick={() => setKeywordFilter('')} className="absolute right-2.5 top-2 text-xs text-stone-400">✕</button>
                 )}
               </div>
 
@@ -904,7 +910,7 @@
               <select
                 value={selectedOwner}
                 onChange={(e) => setSelectedOwner(e.target.value)}
-                className="bg-slate-800 border border-slate-700 text-slate-200 text-xs rounded-lg px-2.5 py-2 focus:outline-none focus:border-emerald-500"
+                className="bg-white border border-stone-200 text-stone-700 text-xs rounded-xl px-3 py-2 focus:outline-none focus:border-stone-800 shadow-sm cursor-pointer"
               >
                 <option value="ALL">All Owners</option>
                 {uniqueOwners.map(o => (
@@ -912,35 +918,35 @@
                 ))}
               </select>
 
-              {/* Radius Filter */}
+              {/* Max Radius Filter */}
               {searchCoords && (
-                <div className="flex items-center gap-1.5 bg-slate-800 border border-slate-700 px-2.5 py-1.5 rounded-lg text-xs">
-                  <span className="text-slate-400">Max Radius:</span>
+                <div className="flex items-center gap-1.5 bg-white border border-stone-200 px-3 py-1.5 rounded-xl text-xs shadow-sm">
+                  <span className="text-stone-500">Radius:</span>
                   <select
                     value={maxRadius}
                     onChange={(e) => setMaxRadius(e.target.value)}
-                    className="bg-transparent text-emerald-400 font-semibold focus:outline-none cursor-pointer"
+                    className="bg-transparent text-stone-900 font-semibold focus:outline-none cursor-pointer"
                   >
-                    <option value="ALL" className="bg-slate-800 text-white">Any distance</option>
-                    <option value="25" className="bg-slate-800 text-white">Within 25 {unit}</option>
-                    <option value="50" className="bg-slate-800 text-white">Within 50 {unit}</option>
-                    <option value="100" className="bg-slate-800 text-white">Within 100 {unit}</option>
-                    <option value="250" className="bg-slate-800 text-white">Within 250 {unit}</option>
+                    <option value="ALL">Any</option>
+                    <option value="25">Within 25 {unit}</option>
+                    <option value="50">Within 50 {unit}</option>
+                    <option value="100">Within 100 {unit}</option>
+                    <option value="250">Within 250 {unit}</option>
                   </select>
                 </div>
               )}
 
-              {/* KM / Miles Unit Toggle */}
-              <div className="flex bg-slate-800 border border-slate-700 rounded-lg p-0.5 text-xs">
+              {/* Unit Toggle */}
+              <div className="flex bg-stone-200/80 border border-stone-300 rounded-xl p-0.5 text-xs">
                 <button
                   onClick={() => setUnit('km')}
-                  className={`px-2 py-1 rounded ${unit === 'km' ? 'bg-slate-700 text-white font-bold' : 'text-slate-400'}`}
+                  className={`px-2.5 py-1 rounded-lg transition ${unit === 'km' ? 'bg-white shadow text-stone-900 font-semibold' : 'text-stone-500'}`}
                 >
                   km
                 </button>
                 <button
                   onClick={() => setUnit('mi')}
-                  className={`px-2 py-1 rounded ${unit === 'mi' ? 'bg-slate-700 text-white font-bold' : 'text-slate-400'}`}
+                  className={`px-2.5 py-1 rounded-lg transition ${unit === 'mi' ? 'bg-white shadow text-stone-900 font-semibold' : 'text-stone-500'}`}
                 >
                   mi
                 </button>
@@ -948,14 +954,11 @@
 
             </div>
 
-            {/* Candidate Search Active Pill */}
+            {/* Candidate Search Active Banner */}
             {searchCoords && (
-              <div className="max-w-7xl mx-auto mt-2 flex items-center justify-between bg-blue-950/40 border border-blue-800/60 px-3 py-1.5 rounded-lg text-xs text-blue-300">
+              <div className="max-w-7xl mx-auto mt-2 flex items-center justify-between bg-stone-200/60 border border-stone-300/80 px-3 py-1.5 rounded-xl text-xs text-stone-700">
                 <div className="flex items-center gap-2">
-                  <span>📍 Ranked by proximity to: <b>{searchAddressName}</b></span>
-                  <span className="bg-blue-600/30 text-blue-300 px-2 py-0.5 rounded text-[10px] font-mono">
-                    [{searchCoords[0].toFixed(2)}, {searchCoords[1].toFixed(2)}]
-                  </span>
+                  <span>📍 Ranked by distance from: <b className="text-stone-900">{searchAddressName}</b></span>
                 </div>
                 <button
                   onClick={() => {
@@ -963,9 +966,9 @@
                     setSearchCoords(null);
                     setSearchAddressName('');
                   }}
-                  className="text-blue-400 hover:text-white underline text-xs"
+                  className="text-stone-500 hover:text-stone-900 underline text-xs font-medium"
                 >
-                  Clear search
+                  Reset search
                 </button>
               </div>
             )}
@@ -974,27 +977,27 @@
           {/* MAIN WORKSPACE SPLIT */}
           <div className="flex-1 flex overflow-hidden relative">
 
-            {/* LEFT / SIDEBAR: RANKED JOB CARDS LIST */}
-            <div className={`w-full lg:w-[460px] xl:w-[500px] border-r border-slate-800 bg-slate-900/40 flex flex-col shrink-0 overflow-hidden ${activeTab === 'map' ? 'hidden lg:flex' : 'flex'}`}>
+            {/* SIDEBAR: RANKED JOB CARDS LIST */}
+            <div className={`w-full lg:w-[460px] xl:w-[490px] border-r border-stone-200 bg-[#FAF9F6] flex flex-col shrink-0 overflow-hidden ${activeTab === 'map' ? 'hidden lg:flex' : 'flex'}`}>
               
               {/* List Header */}
-              <div className="p-3 bg-slate-900/80 border-b border-slate-800 flex items-center justify-between text-xs text-slate-400">
-                <span>Showing <b>{processedJobs.length}</b> Active Roles {searchCoords ? '(Sorted by Distance)' : ''}</span>
-                {searchCoords && <span className="text-emerald-400 font-medium">Nearest first ⬇️</span>}
+              <div className="p-3 bg-white border-b border-stone-200 flex items-center justify-between text-xs text-stone-500">
+                <span>Showing <b>{processedJobs.length}</b> Active Roles</span>
+                {searchCoords && <span className="text-stone-900 font-medium">Nearest first ⬇️</span>}
               </div>
 
-              {/* Scrollable Cards Container */}
-              <div className="flex-1 overflow-y-auto p-3 space-y-3">
+              {/* Scrollable Container */}
+              <div className="flex-1 overflow-y-auto p-3.5 space-y-3">
                 {loading ? (
-                  <div className="py-20 text-center text-slate-400 space-y-3">
-                    <div className="w-8 h-8 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin mx-auto"></div>
-                    <p className="text-sm">Fetching live jobs from Google Sheet...</p>
+                  <div className="py-20 text-center text-stone-400 space-y-3">
+                    <div className="w-7 h-7 border-2 border-stone-800 border-t-transparent rounded-full animate-spin mx-auto"></div>
+                    <p className="text-xs">Fetching active jobs from Google Sheets...</p>
                   </div>
                 ) : processedJobs.length === 0 ? (
-                  <div className="py-20 text-center text-slate-400 space-y-2">
+                  <div className="py-20 text-center text-stone-400 space-y-2">
                     <p className="text-2xl">🔍</p>
-                    <p className="text-sm font-medium text-slate-300">No active jobs match your filters</p>
-                    <p className="text-xs text-slate-500">Try adjusting your radius or search term.</p>
+                    <p className="text-sm font-semibold text-stone-800">No active jobs match filters</p>
+                    <p className="text-xs text-stone-500">Try adjusting your search radius or keyword.</p>
                   </div>
                 ) : (
                   processedJobs.map((job, index) => {
@@ -1004,54 +1007,54 @@
                         id={`job-card-${job.id}`}
                         key={job.id}
                         onClick={() => handleSelectJob(job)}
-                        className={`p-4 rounded-xl border transition-all cursor-pointer relative ${
+                        className={`p-4 rounded-2xl border transition-all cursor-pointer relative ${
                           isSelected
-                            ? 'bg-slate-800/90 border-emerald-500 shadow-lg shadow-emerald-950/40 ring-1 ring-emerald-500'
-                            : 'bg-slate-900/80 hover:bg-slate-800/60 border-slate-800 hover:border-slate-700'
+                            ? 'bg-white border-stone-900 shadow-md ring-1 ring-stone-900'
+                            : 'bg-white hover:border-stone-400 border-stone-200 shadow-sm'
                         }`}
                       >
-                        {/* Top row: Title + Distance / Index */}
+                        {/* Top row: Title + Distance Badge */}
                         <div className="flex items-start justify-between gap-2">
                           <div>
-                            <div className="flex items-center gap-2">
-                              <span className="text-xs font-mono text-slate-500">#{index + 1}</span>
-                              <h3 className="font-semibold text-white text-sm hover:text-emerald-400 transition">
+                            <div className="flex items-center gap-1.5">
+                              <span className="text-[10px] font-mono text-stone-400">#{index + 1}</span>
+                              <h3 className="font-bold text-stone-900 text-sm hover:text-stone-700 transition">
                                 {job['Job Title']}
                               </h3>
                             </div>
-                            <p className="text-xs text-emerald-400 font-medium mt-0.5">{job['Company']}</p>
+                            <p className="text-xs text-stone-600 font-medium mt-0.5">{job['Company']}</p>
                           </div>
 
-                          {/* Distance Badge */}
+                          {/* Distance Tag */}
                           {job.distance !== null ? (
-                            <span className="bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 text-xs px-2.5 py-1 rounded-full font-bold whitespace-nowrap flex items-center gap-1 shrink-0">
-                              <span>📍</span> {job.distance} {unit}
+                            <span className="bg-stone-100 border border-stone-200 text-stone-800 text-xs px-2.5 py-0.5 rounded-full font-semibold whitespace-nowrap shrink-0">
+                              📍 {job.distance} {unit}
                             </span>
                           ) : (
-                            <span className="text-[10px] bg-slate-800 text-slate-400 px-2 py-0.5 rounded border border-slate-700">
+                            <span className="text-[10px] bg-stone-100 text-stone-600 px-2 py-0.5 rounded-md font-medium border border-stone-200/60">
                               {job.displayLocation}
                             </span>
                           )}
                         </div>
 
                         {/* Location & Compensation */}
-                        <div className="mt-2.5 flex flex-wrap items-center gap-x-4 gap-y-1.5 text-xs text-slate-400">
+                        <div className="mt-2.5 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-stone-500">
                           <div className="flex items-center gap-1">
                             <span>📌</span>
                             <span>{job.displayLocation}</span>
                           </div>
                           {job['Compensation'] && (
-                            <div className="flex items-center gap-1 text-slate-300 font-medium">
+                            <div className="flex items-center gap-1 text-emerald-800 font-semibold bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200/60">
                               <span>💰</span>
                               <span>{job['Compensation']}</span>
                             </div>
                           )}
                         </div>
 
-                        {/* Recruiter & Actions */}
-                        <div className="mt-3 pt-2.5 border-t border-slate-800 flex items-center justify-between text-xs">
-                          <span className="text-slate-500">
-                            Owner: <span className="text-slate-400">{job['Owners'] || 'N/A'}</span>
+                        {/* Recruiter & Quick Action */}
+                        <div className="mt-3 pt-2.5 border-t border-stone-100 flex items-center justify-between text-xs">
+                          <span className="text-stone-400 text-[11px]">
+                            Owner: <span className="text-stone-700 font-medium">{job['Owners'] || 'N/A'}</span>
                           </span>
 
                           <div className="flex items-center gap-2">
@@ -1060,9 +1063,9 @@
                                 e.stopPropagation();
                                 copyJobPitch(job);
                               }}
-                              className="text-[11px] bg-slate-800 hover:bg-slate-700 text-slate-300 px-2 py-1 rounded border border-slate-700 transition"
+                              className="text-[11px] bg-stone-100 hover:bg-stone-200 text-stone-800 px-2.5 py-1 rounded-lg border border-stone-200 font-medium transition"
                             >
-                              {copiedId === job.id ? '✓ Copied!' : '📋 Copy Pitch'}
+                              {copiedId === job.id ? '✓ Copied' : '📋 Copy Pitch'}
                             </button>
 
                             <button
@@ -1070,9 +1073,9 @@
                                 e.stopPropagation();
                                 setSelectedJob(job);
                               }}
-                              className="text-[11px] text-emerald-400 hover:text-emerald-300 font-medium"
+                              className="text-[11px] text-stone-900 font-semibold hover:underline"
                             >
-                              Details &rarr;
+                              View &rarr;
                             </button>
                           </div>
                         </div>
@@ -1084,11 +1087,11 @@
               </div>
             </div>
 
-            {/* RIGHT: INTERACTIVE MAP CONTAINER */}
-            <div className={`flex-1 relative h-full bg-slate-950 ${activeTab === 'list' ? 'hidden lg:block' : 'block'}`}>
+            {/* INTERACTIVE MAP */}
+            <div className={`flex-1 relative h-full bg-stone-100 ${activeTab === 'list' ? 'hidden lg:block' : 'block'}`}>
               <div ref={mapContainerRef} className="w-full h-full z-10" />
 
-              {/* Map Floating Overlay Controls */}
+              {/* Map Floating Buttons */}
               <div className="absolute top-4 right-4 z-20 flex items-center gap-2">
                 <button
                   onClick={() => {
@@ -1103,7 +1106,7 @@
                       }
                     }
                   }}
-                  className="bg-slate-900/90 hover:bg-slate-800 text-white text-xs px-3 py-2 rounded-lg border border-slate-700 shadow-xl backdrop-blur font-medium transition flex items-center gap-1.5"
+                  className="bg-white hover:bg-stone-50 text-stone-900 text-xs px-3 py-2 rounded-xl border border-stone-200 shadow-md font-medium transition flex items-center gap-1.5"
                 >
                   <span>🍁</span> Focus Ontario
                 </button>
@@ -1116,83 +1119,83 @@
                       }
                     }
                   }}
-                  className="bg-slate-900/90 hover:bg-slate-800 text-white text-xs px-3 py-2 rounded-lg border border-slate-700 shadow-xl backdrop-blur font-medium transition flex items-center gap-1.5"
+                  className="bg-white hover:bg-stone-50 text-stone-900 text-xs px-3 py-2 rounded-xl border border-stone-200 shadow-md font-medium transition flex items-center gap-1.5"
                 >
                   <span>🌐</span> All Pins
                 </button>
               </div>
 
-              {/* SLIDE-OUT DETAIL DRAWER / POPUP */}
+              {/* SLIDE-OUT DETAIL DRAWER */}
               {selectedJob && (
-                <div className="absolute top-4 left-4 right-4 sm:right-auto sm:w-96 max-h-[85%] bg-slate-900/95 border border-slate-700 rounded-2xl shadow-2xl backdrop-blur z-30 flex flex-col overflow-hidden animate-in fade-in slide-in-from-left duration-200">
+                <div className="absolute top-4 left-4 right-4 sm:right-auto sm:w-96 max-h-[85%] bg-white/95 border border-stone-200 rounded-3xl shadow-2xl backdrop-blur z-30 flex flex-col overflow-hidden animate-in fade-in duration-150">
                   
                   {/* Drawer Header */}
-                  <div className="p-4 border-b border-slate-800 flex items-start justify-between bg-slate-800/50">
+                  <div className="p-4 border-b border-stone-100 flex items-start justify-between bg-stone-50/50">
                     <div>
-                      <span className="text-[10px] font-mono uppercase tracking-wider text-emerald-400 font-bold">Job Details</span>
-                      <h2 className="text-base font-bold text-white mt-0.5">{selectedJob['Job Title']}</h2>
-                      <p className="text-xs text-slate-300 font-medium">{selectedJob['Company']}</p>
+                      <span className="text-[10px] font-mono uppercase tracking-wider text-stone-400 font-bold">Job Card</span>
+                      <h2 className="text-base font-bold text-stone-900 mt-0.5">{selectedJob['Job Title']}</h2>
+                      <p className="text-xs text-stone-600 font-medium">{selectedJob['Company']}</p>
                     </div>
                     <button
                       onClick={() => setSelectedJob(null)}
-                      className="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-slate-800 transition"
+                      className="text-stone-400 hover:text-stone-900 p-1.5 rounded-lg hover:bg-stone-100 transition"
                     >
                       ✕
                     </button>
                   </div>
 
                   {/* Drawer Content */}
-                  <div className="p-4 overflow-y-auto space-y-3.5 text-xs text-slate-300 flex-1">
+                  <div className="p-4 overflow-y-auto space-y-3.5 text-xs text-stone-700 flex-1">
                     
-                    {/* Quick Specs Grid */}
-                    <div className="grid grid-cols-2 gap-2 bg-slate-950/60 p-2.5 rounded-xl border border-slate-800">
+                    {/* Key Specs */}
+                    <div className="grid grid-cols-2 gap-2 bg-stone-50 p-3 rounded-2xl border border-stone-200/70">
                       <div>
-                        <span className="text-slate-500 text-[10px] block">Location</span>
-                        <span className="font-semibold text-white">{selectedJob.displayLocation}</span>
+                        <span className="text-stone-400 text-[10px] block">Location</span>
+                        <span className="font-semibold text-stone-900">{selectedJob.displayLocation}</span>
                       </div>
                       <div>
-                        <span className="text-slate-500 text-[10px] block">Compensation</span>
-                        <span className="font-semibold text-emerald-400">{selectedJob['Compensation'] || 'Not listed'}</span>
+                        <span className="text-stone-400 text-[10px] block">Compensation</span>
+                        <span className="font-semibold text-emerald-800">{selectedJob['Compensation'] || 'Not listed'}</span>
                       </div>
                       <div>
-                        <span className="text-slate-500 text-[10px] block">Job ID</span>
-                        <span className="font-mono text-slate-300">{selectedJob['Job ID']}</span>
+                        <span className="text-stone-400 text-[10px] block">Job ID</span>
+                        <span className="font-mono text-stone-700">{selectedJob['Job ID']}</span>
                       </div>
                       <div>
-                        <span className="text-slate-500 text-[10px] block">Owner(s)</span>
-                        <span className="font-medium text-slate-300">{selectedJob['Owners'] || 'N/A'}</span>
+                        <span className="text-stone-400 text-[10px] block">Owner(s)</span>
+                        <span className="font-medium text-stone-900">{selectedJob['Owners'] || 'N/A'}</span>
                       </div>
                       {selectedJob['Client Contact'] && (
-                        <div className="col-span-2">
-                          <span className="text-slate-500 text-[10px] block">Client Contact</span>
-                          <span className="text-slate-300">{selectedJob['Client Contact']}</span>
+                        <div className="col-span-2 pt-1 border-t border-stone-200/50">
+                          <span className="text-stone-400 text-[10px] block">Client Contact</span>
+                          <span className="text-stone-800 font-medium">{selectedJob['Client Contact']}</span>
                         </div>
                       )}
                     </div>
 
                     {/* Job Description */}
                     <div>
-                      <h4 className="font-semibold text-slate-200 mb-1.5 flex items-center justify-between">
-                        <span>Role Overview</span>
+                      <h4 className="font-semibold text-stone-900 mb-1.5 flex items-center justify-between">
+                        <span>Role Details</span>
                         <button
                           onClick={() => copyJobPitch(selectedJob)}
-                          className="text-emerald-400 hover:text-emerald-300 text-[11px] font-normal"
+                          className="text-stone-500 hover:text-stone-900 text-[11px] font-normal underline"
                         >
-                          {copiedId === selectedJob.id ? '✓ Pitch Copied!' : 'Copy Summary'}
+                          {copiedId === selectedJob.id ? '✓ Pitch Copied' : 'Copy Pitch'}
                         </button>
                       </h4>
-                      <div className="bg-slate-950/40 p-3 rounded-xl border border-slate-800/80 text-slate-300 whitespace-pre-wrap leading-relaxed max-h-60 overflow-y-auto text-[11px]">
-                        {selectedJob['Job Description'] || 'No full description provided.'}
+                      <div className="bg-stone-50 p-3 rounded-2xl border border-stone-200/60 text-stone-700 whitespace-pre-wrap leading-relaxed max-h-60 overflow-y-auto text-[11px]">
+                        {selectedJob['Job Description'] || 'No description provided.'}
                       </div>
                     </div>
 
                   </div>
 
                   {/* Drawer Footer Actions */}
-                  <div className="p-3 border-t border-slate-800 bg-slate-900 flex items-center justify-between gap-2">
+                  <div className="p-3 border-t border-stone-100 bg-stone-50 flex items-center justify-between gap-2">
                     <button
                       onClick={() => copyJobPitch(selectedJob)}
-                      className="flex-1 bg-emerald-600 hover:bg-emerald-500 text-white font-medium py-2 rounded-lg text-xs transition shadow flex items-center justify-center gap-1.5"
+                      className="flex-1 bg-stone-900 hover:bg-stone-800 text-white font-medium py-2.5 rounded-xl text-xs transition shadow-sm flex items-center justify-center gap-1.5"
                     >
                       <span>📋</span>
                       <span>{copiedId === selectedJob.id ? 'Copied to Clipboard!' : 'Copy Pitch for Candidate'}</span>
