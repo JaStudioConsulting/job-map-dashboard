@@ -144,8 +144,18 @@
       "oshawa, on": [43.8971, -78.8658],
       "kingston, on": [44.2312, -76.4860],
       "trenton, on": [44.1000, -77.5833],
+      "leamington, on": [42.0532, -82.5998],
+      "leamington": [42.0532, -82.5998],
       "chatham, on": [42.4048, -82.1910],
+      "chatham-kent, on": [42.4048, -82.1910],
       "sarnia, on": [42.9745, -82.4066],
+      "stratford, on": [43.3700, -80.9822],
+      "woodstock, on": [43.1315, -80.7472],
+      "brantford, on": [43.1394, -80.2644],
+      "st. thomas, on": [42.7788, -81.1934],
+      "peterborough, on": [44.3091, -78.3197],
+      "sudbury, on": [46.4917, -80.9930],
+      "sault ste. marie, on": [46.5136, -84.3358],
       "ottawa, on": [45.4215, -75.6972],
       // USA / California & Others
       "anaheim, ca": [33.8366, -117.9143],
@@ -481,30 +491,18 @@
         if (!isAuthenticated || !mapContainerRef.current) return;
 
         if (!mapInstanceRef.current) {
-          // Constrain map strictly to North America (US & Canada)
-          const northAmericaBounds = [
-            [20.0, -140.0], // South-West (Southern US boundary)
-            [65.0, -52.0]   // North-East (Canada / Newfoundland boundary)
-          ];
-
           const map = L.map(mapContainerRef.current, {
             center: [43.9, -79.8],
             zoom: 7,
-            minZoom: 4,
-            maxZoom: 16,
-            maxBounds: northAmericaBounds,
-            maxBoundsViscosity: 0.9,
             zoomControl: false
           });
 
           L.control.zoom({ position: 'bottomright' }).addTo(map);
 
-          // Fast & Crisp ESRI Map (Bounded to North America)
+          // Full-coverage, seamless ESRI World Street Map
           L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}', {
             attribution: 'Tiles &copy; Esri &mdash; Top Tier Talent Group',
-            bounds: northAmericaBounds,
-            maxZoom: 16,
-            minZoom: 4
+            maxZoom: 18
           }).addTo(map);
 
           mapInstanceRef.current = map;
@@ -609,8 +607,9 @@
             }
           }
 
+          // Fallback to OpenStreetMap Nominatim strictly within CA and US
           if (!coords) {
-            const nominatimUrl = `https://nominatim.openstreetmap.org/search?format=json&limit=1&q=${encodeURIComponent(searchQuery)}`;
+            const nominatimUrl = `https://nominatim.openstreetmap.org/search?format=json&limit=1&countrycodes=ca,us&q=${encodeURIComponent(searchQuery)}`;
             const res = await fetch(nominatimUrl, { headers: { 'Accept-Language': 'en' } });
             const data = await res.json();
             if (data && data.length > 0) {
