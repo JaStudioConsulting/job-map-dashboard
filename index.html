@@ -7,7 +7,7 @@
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
   <meta http-equiv="Pragma" content="no-cache" />
   <meta http-equiv="Expires" content="0" />
-  <title>Top Tier Talent Group | Active Jobs Radar v2.2</title>
+  <title>Top Tier Talent Group | Active Jobs Radar v2.5</title>
   
   <!-- Google Fonts: Inter & JetBrains Mono -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -475,6 +475,7 @@
       const [searchCoords, setSearchCoords] = useState(null);
       const [searchAddressName, setSearchAddressName] = useState('');
       const [isSearchingLocation, setIsSearchingLocation] = useState(false);
+      const [searchError, setSearchError] = useState(null);
       const [keywordFilter, setKeywordFilter] = useState('');
       const [selectedOwner, setSelectedOwner] = useState('ALL');
       const [maxRadius, setMaxRadius] = useState('ALL');
@@ -767,10 +768,12 @@
         map.invalidateSize();
       }, [jobs, selectedJob, searchCoords, isAuthenticated]);
 
-      // 4. Geocode Location Search
+      // 4. Geocode Location Search (Multi-stage fallback for partial & full addresses)
       const handleLocationSearch = async (e) => {
         if (e) e.preventDefault();
         const query = searchQuery.trim();
+        setSearchError(null);
+
         if (!query) {
           setSearchCoords(null);
           setSearchAddressName('');
@@ -825,34 +828,44 @@
             }
           }
 
-          // 4. Fallback to OpenStreetMap Nominatim strictly within CA and US
+          // 4. Multi-stage Nominatim Search (handles full street address and partial queries)
           if (!coords) {
-            try {
-              const nominatimUrl = `https://nominatim.openstreetmap.org/search?format=json&limit=1&countrycodes=ca,us&q=${encodeURIComponent(query)}`;
-              const res = await fetch(nominatimUrl, { headers: { 'Accept-Language': 'en' } });
-              if (res.ok) {
-                const data = await res.json();
-                if (Array.isArray(data) && data.length > 0) {
-                  coords = [parseFloat(data[0].lat), parseFloat(data[0].lon)];
-                  displayName = data[0].display_name.split(',').slice(0, 2).join(',').trim();
-                  
-                  // Save to persistent cache
-                  try {
-                    const cache = JSON.parse(localStorage.getItem('tttg_geo_cache') || '{}');
-                    cache[cleanQuery] = coords;
-                    cache[query] = coords;
-                    localStorage.setItem('tttg_geo_cache', JSON.stringify(cache));
-                  } catch (e) {}
+            const queriesToTry = [
+              query,
+              !/(on|ontario|ca|california|mi|michigan|ny|tx|fl|qc|bc|alberta)/i.test(query) ? `${query}, Ontario, Canada` : null,
+              !/(canada|usa|us)/i.test(query) ? `${query}, Canada` : null
+            ].filter(Boolean);
+
+            for (const q of queriesToTry) {
+              try {
+                const nominatimUrl = `https://nominatim.openstreetmap.org/search?format=json&limit=1&countrycodes=ca,us&q=${encodeURIComponent(q)}`;
+                const res = await fetch(nominatimUrl, { headers: { 'Accept-Language': 'en' } });
+                if (res.ok) {
+                  const data = await res.json();
+                  if (Array.isArray(data) && data.length > 0) {
+                    coords = [parseFloat(data[0].lat), parseFloat(data[0].lon)];
+                    displayName = data[0].display_name.split(',').slice(0, 3).join(',').trim();
+                    
+                    // Save to persistent cache
+                    try {
+                      const cache = JSON.parse(localStorage.getItem('tttg_geo_cache') || '{}');
+                      cache[cleanQuery] = coords;
+                      cache[query] = coords;
+                      localStorage.setItem('tttg_geo_cache', JSON.stringify(cache));
+                    } catch (e) {}
+                    break;
+                  }
                 }
+              } catch (fetchErr) {
+                console.warn('Nominatim lookup notice for', q, fetchErr);
               }
-            } catch (fetchErr) {
-              console.warn('Nominatim network error:', fetchErr);
             }
           }
 
           if (coords) {
             setSearchCoords(coords);
             setSearchAddressName(displayName);
+            setSearchError(null);
 
             if (map) {
               try {
@@ -894,10 +907,11 @@
               }
             }
           } else {
-            alert(`Location "${query}" not found. Try entering city & province/state (e.g. "55 Mutual St, Toronto, ON").`);
+            setSearchError(`Could not locate "${query}". Please check the address or try adding the city (e.g. "${query}, Toronto" or "${query}, ON").`);
           }
         } catch (err) {
           console.warn('Search geocode notice:', err);
+          setSearchError(`Could not resolve location. Please try adding city and province.`);
         } finally {
           setIsSearchingLocation(false);
         }
@@ -1053,7 +1067,7 @@
               <div>
                 <div className="flex items-center gap-2">
                   <h1 className="font-bold text-sm text-stone-900 tracking-tight">Top Tier Talent</h1>
-                  <span className="bg-stone-100 text-stone-700 text-[11px] px-2 py-0.5 rounded-full font-medium border border-stone-200">Radar v2.4</span>
+                  <span className="bg-stone-100 text-stone-700 text-[11px] px-2 py-0.5 rounded-full font-medium border border-stone-200">Radar v2.5</span>
                 </div>
                 <p className="text-[11px] text-stone-500 hidden sm:block">Proximity recruiter search & distance calculator</p>
               </div>
@@ -1112,9 +1126,12 @@
                 <div className="absolute left-3 text-stone-400 text-sm">📍</div>
                 <input
                   type="text"
-                  placeholder="Candidate city / postal (e.g. Detroit, Windsor, London ON)..."
+                  placeholder="Candidate city / postal / full address (e.g. 55 Mutual St Toronto, Detroit, Windsor)..."
                   value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
+                  onChange={(e) => {
+                    setSearchQuery(e.target.value);
+                    if (searchError) setSearchError(null);
+                  }}
                   className="w-full pl-9 pr-24 py-2 bg-white border border-stone-200 focus:border-stone-800 rounded-xl text-xs sm:text-sm text-stone-900 placeholder-stone-400 focus:outline-none focus:ring-1 focus:ring-stone-800 shadow-sm transition"
                 />
                 <div className="absolute right-1.5 flex items-center gap-1">
@@ -1125,6 +1142,7 @@
                         setSearchQuery('');
                         setSearchCoords(null);
                         setSearchAddressName('');
+                        setSearchError(null);
                       }}
                       className="text-xs text-stone-400 hover:text-stone-700 px-1.5 py-1"
                     >
@@ -1214,10 +1232,27 @@
                     setSearchQuery('');
                     setSearchCoords(null);
                     setSearchAddressName('');
+                    setSearchError(null);
                   }}
                   className="text-stone-500 hover:text-stone-900 underline text-xs font-medium"
                 >
                   Reset search
+                </button>
+              </div>
+            )}
+
+            {/* Candidate Search Error Notice (Non-blocking inline) */}
+            {searchError && (
+              <div className="max-w-7xl mx-auto mt-2 flex items-center justify-between bg-rose-50 border border-rose-200/80 px-3 py-1.5 rounded-xl text-xs text-rose-800 animate-in fade-in duration-150">
+                <div className="flex items-center gap-2">
+                  <span>⚠️</span>
+                  <span>{searchError}</span>
+                </div>
+                <button
+                  onClick={() => setSearchError(null)}
+                  className="text-rose-500 hover:text-rose-900 text-xs font-bold px-1"
+                >
+                  ✕
                 </button>
               </div>
             )}
