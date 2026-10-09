@@ -7,7 +7,7 @@
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
   <meta http-equiv="Pragma" content="no-cache" />
   <meta http-equiv="Expires" content="0" />
-  <title>Top Tier Talent Group | Active Jobs Radar v2.5</title>
+  <title>Top Tier Talent Group | Proximity Radar & Active Job Map</title>
   
   <!-- Google Fonts: Inter & JetBrains Mono -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -476,6 +476,10 @@
       const [searchAddressName, setSearchAddressName] = useState('');
       const [isSearchingLocation, setIsSearchingLocation] = useState(false);
       const [searchError, setSearchError] = useState(null);
+      const [suggestions, setSuggestions] = useState([]);
+      const [showSuggestions, setShowSuggestions] = useState(false);
+      const [activeSuggestionIndex, setActiveSuggestionIndex] = useState(-1);
+      const searchBoxRef = useRef(null);
       const [keywordFilter, setKeywordFilter] = useState('');
       const [selectedOwner, setSelectedOwner] = useState('ALL');
       const [maxRadius, setMaxRadius] = useState('ALL');
@@ -917,6 +921,145 @@
         }
       };
 
+      // 4b. Live Address Suggestions (Uber / Google Maps style autocomplete)
+      useEffect(() => {
+        const query = searchQuery.trim();
+        if (query.length < 2 || !showSuggestions) {
+          setSuggestions([]);
+          return;
+        }
+
+        const timer = setTimeout(async () => {
+          const cleanQuery = query.toLowerCase();
+          const results = [];
+
+          // 1. Instant local matching from known cities & regional hubs
+          Object.keys(CITY_COORDINATES).forEach(key => {
+            if (key.startsWith(cleanQuery) || key.includes(cleanQuery)) {
+              results.push({
+                id: `local_${key}`,
+                mainText: key.toUpperCase(),
+                secondaryText: 'Regional Hub',
+                coords: CITY_COORDINATES[key],
+                fullName: key.toUpperCase()
+              });
+            }
+          });
+
+          // 2. Query high-speed OSM Photon typeahead endpoint (biased towards ON / North America)
+          try {
+            const photonUrl = `https://photon.komoot.io/api/?q=${encodeURIComponent(query)}&limit=5&lat=43.7&lon=-79.4`;
+            const res = await fetch(photonUrl);
+            if (res.ok) {
+              const data = await res.json();
+              if (data && Array.isArray(data.features)) {
+                data.features.forEach(feat => {
+                  const props = feat.properties || {};
+                  const coords = [feat.geometry.coordinates[1], feat.geometry.coordinates[0]]; // lat, lon
+                  
+                  let main = props.name || props.street || props.city || query;
+                  if (props.housenumber && props.street) {
+                    main = `${props.housenumber} ${props.street}`;
+                  }
+                  
+                  const subParts = [props.city || props.district || props.locality, props.state, props.country].filter(Boolean);
+                  const secondary = subParts.join(', ');
+                  const fullName = `${main}, ${secondary}`;
+
+                  if (!results.some(r => r.fullName === fullName)) {
+                    results.push({
+                      id: `photon_${feat.properties.osm_id || Math.random()}`,
+                      mainText: main,
+                      secondaryText: secondary,
+                      coords: coords,
+                      fullName: fullName
+                    });
+                  }
+                });
+              }
+            }
+          } catch (e) {
+            console.warn('Autocomplete fetch notice:', e);
+          }
+
+          setSuggestions(results.slice(0, 5));
+          setActiveSuggestionIndex(-1);
+        }, 180);
+
+        return () => clearTimeout(timer);
+      }, [searchQuery, showSuggestions]);
+
+      // Handle selecting a suggested address from dropdown
+      const handleSelectSuggestion = (item) => {
+        const fullDisplay = item.mainText + (item.secondaryText ? `, ${item.secondaryText}` : '');
+        setSearchQuery(fullDisplay);
+        setSearchCoords(item.coords);
+        setSearchAddressName(item.mainText);
+        setSuggestions([]);
+        setShowSuggestions(false);
+        setSearchError(null);
+
+        // Cache in persistent storage
+        try {
+          const cache = JSON.parse(localStorage.getItem('tttg_geo_cache') || '{}');
+          cache[fullDisplay.toLowerCase()] = item.coords;
+          cache[item.mainText.toLowerCase()] = item.coords;
+          localStorage.setItem('tttg_geo_cache', JSON.stringify(cache));
+        } catch (e) {}
+
+        const map = mapInstanceRef.current;
+        if (map) {
+          try {
+            if (searchMarkerRef.current) map.removeLayer(searchMarkerRef.current);
+            if (radiusCircleRef.current) map.removeLayer(radiusCircleRef.current);
+
+            const searchIcon = L.divIcon({
+              html: `
+                <div class="relative flex items-center justify-center">
+                  <div class="w-8 h-8 rounded-full bg-stone-900 border-2 border-white shadow-xl flex items-center justify-center text-white text-xs font-bold candidate-pulse">
+                    📍
+                  </div>
+                </div>
+              `,
+              className: 'search-user-marker',
+              iconSize: [32, 32],
+              iconAnchor: [16, 16]
+            });
+
+            searchMarkerRef.current = L.marker(item.coords, { icon: searchIcon, zIndexOffset: 1000 })
+              .bindTooltip(`<b>Candidate Location</b><br/>${item.mainText}`, { permanent: true, direction: 'bottom', offset: [0, 10], className: 'custom-tooltip' })
+              .addTo(map);
+
+            if (maxRadius !== 'ALL') {
+              const radiusMeters = parseInt(maxRadius) * (unit === 'mi' ? 1609.34 : 1000);
+              radiusCircleRef.current = L.circle(item.coords, {
+                radius: radiusMeters,
+                color: '#2B2723',
+                fillColor: '#787165',
+                fillOpacity: 0.1,
+                weight: 1.5,
+                dashArray: '4, 6'
+              }).addTo(map);
+            }
+
+            map.flyTo(item.coords, 10, { duration: 1 });
+          } catch (err) {
+            console.warn('Map marker positioning notice:', err);
+          }
+        }
+      };
+
+      // Close autocomplete dropdown on click outside
+      useEffect(() => {
+        const handleClickOutside = (e) => {
+          if (searchBoxRef.current && !searchBoxRef.current.contains(e.target)) {
+            setShowSuggestions(false);
+          }
+        };
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+      }, []);
+
       // 5. Unique Owners
       const uniqueOwners = useMemo(() => {
         const ownersSet = new Set();
@@ -1065,10 +1208,7 @@
                 💼
               </div>
               <div>
-                <div className="flex items-center gap-2">
-                  <h1 className="font-bold text-sm text-stone-900 tracking-tight">Top Tier Talent</h1>
-                  <span className="bg-stone-100 text-stone-700 text-[11px] px-2 py-0.5 rounded-full font-medium border border-stone-200">Radar v2.5</span>
-                </div>
+                <h1 className="font-bold text-sm text-stone-900 tracking-tight">Top Tier Talent Group</h1>
                 <p className="text-[11px] text-stone-500 hidden sm:block">Proximity recruiter search & distance calculator</p>
               </div>
             </div>
@@ -1121,43 +1261,108 @@
           <div className="border-b border-stone-200 bg-stone-50/70 p-3 shrink-0 z-20">
             <div className="max-w-7xl mx-auto flex flex-wrap items-center gap-2 sm:gap-3">
               
-              {/* Proximity Location Input */}
-              <form onSubmit={handleLocationSearch} className="flex-1 min-w-[280px] flex items-center relative">
-                <div className="absolute left-3 text-stone-400 text-sm">📍</div>
-                <input
-                  type="text"
-                  placeholder="Candidate city / postal / full address (e.g. 55 Mutual St Toronto, Detroit, Windsor)..."
-                  value={searchQuery}
-                  onChange={(e) => {
-                    setSearchQuery(e.target.value);
-                    if (searchError) setSearchError(null);
-                  }}
-                  className="w-full pl-9 pr-24 py-2 bg-white border border-stone-200 focus:border-stone-800 rounded-xl text-xs sm:text-sm text-stone-900 placeholder-stone-400 focus:outline-none focus:ring-1 focus:ring-stone-800 shadow-sm transition"
-                />
-                <div className="absolute right-1.5 flex items-center gap-1">
-                  {searchCoords && (
+              {/* Proximity Location Input + Uber-Style Autocomplete */}
+              <div ref={searchBoxRef} className="flex-1 min-w-[280px] relative">
+                <form onSubmit={handleLocationSearch} className="w-full flex items-center relative">
+                  <div className="absolute left-3 text-stone-400 text-sm pointer-events-none">📍</div>
+                  <input
+                    type="text"
+                    placeholder="Candidate city / postal / street address..."
+                    value={searchQuery}
+                    onFocus={() => {
+                      if (searchQuery.trim().length >= 2) setShowSuggestions(true);
+                    }}
+                    onChange={(e) => {
+                      setSearchQuery(e.target.value);
+                      setShowSuggestions(true);
+                      if (searchError) setSearchError(null);
+                    }}
+                    onKeyDown={(e) => {
+                      if (showSuggestions && suggestions.length > 0) {
+                        if (e.key === 'ArrowDown') {
+                          e.preventDefault();
+                          setActiveSuggestionIndex(prev => Math.min(prev + 1, suggestions.length - 1));
+                        } else if (e.key === 'ArrowUp') {
+                          e.preventDefault();
+                          setActiveSuggestionIndex(prev => Math.max(prev - 1, 0));
+                        } else if (e.key === 'Enter' && activeSuggestionIndex >= 0) {
+                          e.preventDefault();
+                          handleSelectSuggestion(suggestions[activeSuggestionIndex]);
+                        } else if (e.key === 'Escape') {
+                          setShowSuggestions(false);
+                        }
+                      }
+                    }}
+                    className="w-full pl-9 pr-24 py-2 bg-white border border-stone-200 focus:border-stone-800 rounded-xl text-xs sm:text-sm text-stone-900 placeholder-stone-400 focus:outline-none focus:ring-1 focus:ring-stone-800 shadow-sm transition"
+                  />
+                  <div className="absolute right-1.5 flex items-center gap-1">
+                    {searchCoords && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setSearchQuery('');
+                          setSearchCoords(null);
+                          setSearchAddressName('');
+                          setSearchError(null);
+                          setShowSuggestions(false);
+                        }}
+                        className="text-xs text-stone-400 hover:text-stone-700 px-1.5 py-1"
+                      >
+                        ✕
+                      </button>
+                    )}
                     <button
-                      type="button"
-                      onClick={() => {
-                        setSearchQuery('');
-                        setSearchCoords(null);
-                        setSearchAddressName('');
-                        setSearchError(null);
-                      }}
-                      className="text-xs text-stone-400 hover:text-stone-700 px-1.5 py-1"
+                      type="submit"
+                      disabled={isSearchingLocation}
+                      className="bg-stone-900 hover:bg-stone-800 disabled:opacity-50 text-white px-3 py-1 rounded-lg text-xs font-medium shadow-sm transition"
                     >
-                      ✕
+                      {isSearchingLocation ? 'Finding...' : 'Rank Proximity'}
                     </button>
-                  )}
-                  <button
-                    type="submit"
-                    disabled={isSearchingLocation}
-                    className="bg-stone-900 hover:bg-stone-800 disabled:opacity-50 text-white px-3 py-1 rounded-lg text-xs font-medium shadow-sm transition"
-                  >
-                    {isSearchingLocation ? 'Finding...' : 'Rank Proximity'}
-                  </button>
-                </div>
-              </form>
+                  </div>
+                </form>
+
+                {/* UBER-STYLE AUTOCOMPLETE DROPDOWN */}
+                {showSuggestions && suggestions.length > 0 && (
+                  <div className="absolute top-full left-0 right-0 mt-1.5 bg-white/95 backdrop-blur-md border border-stone-200 rounded-2xl shadow-2xl overflow-hidden z-50 animate-in fade-in slide-in-from-top-1 duration-150">
+                    <div className="p-1.5">
+                      <div className="px-2.5 py-1 text-[10px] font-mono uppercase tracking-wider text-stone-400 font-semibold flex items-center justify-between border-b border-stone-100">
+                        <span>Suggested Locations</span>
+                        <span className="text-[9px] text-stone-400 lowercase">select to rank</span>
+                      </div>
+                      <div className="max-h-60 overflow-y-auto mt-1 space-y-0.5">
+                        {suggestions.map((item, idx) => {
+                          const isActive = idx === activeSuggestionIndex;
+                          return (
+                            <div
+                              key={item.id}
+                              onMouseEnter={() => setActiveSuggestionIndex(idx)}
+                              onClick={() => handleSelectSuggestion(item)}
+                              className={`px-3 py-2 rounded-xl cursor-pointer transition flex items-start gap-2.5 ${
+                                isActive ? 'bg-stone-100 text-stone-900' : 'hover:bg-stone-50 text-stone-800'
+                              }`}
+                            >
+                              <span className="text-sm mt-0.5 text-stone-400">📍</span>
+                              <div className="flex-1 min-w-0">
+                                <p className="text-xs font-semibold text-stone-900 truncate">
+                                  {item.mainText}
+                                </p>
+                                {item.secondaryText && (
+                                  <p className="text-[11px] text-stone-500 truncate mt-0.5">
+                                    {item.secondaryText}
+                                  </p>
+                                )}
+                              </div>
+                              <span className="text-[10px] text-stone-400 font-mono self-center shrink-0">
+                                ↵ Select
+                              </span>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
 
               {/* Keyword Filter */}
               <div className="w-40 shrink-0 relative">
