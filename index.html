@@ -481,18 +481,30 @@
         if (!isAuthenticated || !mapContainerRef.current) return;
 
         if (!mapInstanceRef.current) {
+          // Constrain map strictly to North America (US & Canada)
+          const northAmericaBounds = [
+            [20.0, -140.0], // South-West (Southern US boundary)
+            [65.0, -52.0]   // North-East (Canada / Newfoundland boundary)
+          ];
+
           const map = L.map(mapContainerRef.current, {
             center: [43.9, -79.8],
             zoom: 7,
+            minZoom: 4,
+            maxZoom: 16,
+            maxBounds: northAmericaBounds,
+            maxBoundsViscosity: 0.9,
             zoomControl: false
           });
 
           L.control.zoom({ position: 'bottomright' }).addTo(map);
 
-          // ESRI World Street Map (Warm, crisp, corporate grade)
+          // Fast & Crisp ESRI Map (Bounded to North America)
           L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}', {
             attribution: 'Tiles &copy; Esri &mdash; Top Tier Talent Group',
-            maxZoom: 18
+            bounds: northAmericaBounds,
+            maxZoom: 16,
+            minZoom: 4
           }).addTo(map);
 
           mapInstanceRef.current = map;
