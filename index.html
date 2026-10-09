@@ -110,6 +110,25 @@
         box-shadow: 0 0 0 24px rgba(43, 39, 35, 0);
       }
     }
+    /* Custom Smooth Scrollbar */
+    .custom-scrollbar {
+      scrollbar-width: thin;
+      scrollbar-color: #E8E5DF transparent;
+      overscroll-behavior: contain;
+    }
+    .custom-scrollbar::-webkit-scrollbar {
+      width: 6px;
+    }
+    .custom-scrollbar::-webkit-scrollbar-track {
+      background: transparent;
+    }
+    .custom-scrollbar::-webkit-scrollbar-thumb {
+      background: #E8E5DF;
+      border-radius: 9999px;
+    }
+    .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+      background: #D6D1C7;
+    }
     /* Refined scrollbar */
     ::-webkit-scrollbar {
       width: 5px;
@@ -472,6 +491,7 @@
       const markersRef = useRef({});
       const searchMarkerRef = useRef(null);
       const radiusCircleRef = useRef(null);
+      const hasInitiallyFittedRef = useRef(false);
 
       const CSV_URL = 'https://docs.google.com/spreadsheets/d/1RexJFAEWRwNjzeGThutrA0zMObu2g4r3q0Vu0uiDbQs/gviz/tq?tqx=out:csv&sheet=Jobs';
 
@@ -635,7 +655,14 @@
             center: [43.9, -79.8],
             zoom: 7,
             zoomControl: false,
-            preferCanvas: true
+            preferCanvas: true,
+            zoomSnap: 0.25,
+            zoomDelta: 0.5,
+            wheelPxPerZoomLevel: 120,
+            wheelDebounceTime: 40,
+            inertia: true,
+            inertiaDeceleration: 3000,
+            easeLinearity: 0.2
           });
 
           L.control.zoom({ position: 'bottomright' }).addTo(map);
@@ -728,12 +755,14 @@
           markersRef.current[job.id] = marker;
         });
 
-        // Focus Ontario on initial load
+        // Focus Ontario strictly once on initial load
         const ontarioBounds = bounds.filter(([lat, lng]) => lat >= 41.5 && lat <= 46.5 && lng >= -84.0 && lng <= -74.0);
-        if (ontarioBounds.length > 0 && !searchCoords && !selectedJob) {
+        if (!hasInitiallyFittedRef.current && ontarioBounds.length > 0 && !searchCoords && !selectedJob) {
           map.fitBounds(ontarioBounds, { padding: [50, 50], maxZoom: 8 });
-        } else if (!searchCoords && !selectedJob) {
+          hasInitiallyFittedRef.current = true;
+        } else if (!hasInitiallyFittedRef.current && !searchCoords && !selectedJob) {
           map.setView([43.9, -79.8], 7);
+          hasInitiallyFittedRef.current = true;
         }
         map.invalidateSize();
       }, [jobs, selectedJob, searchCoords, isAuthenticated]);
@@ -741,7 +770,8 @@
       // 4. Geocode Location Search
       const handleLocationSearch = async (e) => {
         if (e) e.preventDefault();
-        if (!searchQuery.trim()) {
+        const query = searchQuery.trim();
+        if (!query) {
           setSearchCoords(null);
           setSearchAddressName('');
           if (searchMarkerRef.current && mapInstanceRef.current) {
@@ -755,30 +785,68 @@
           return;
         }
 
+        if (isSearchingLocation) return;
         setIsSearchingLocation(true);
         const map = mapInstanceRef.current;
 
         try {
-          const cleanQuery = searchQuery.toLowerCase().trim();
+          const cleanQuery = query.toLowerCase().trim();
           let coords = null;
-          let displayName = searchQuery;
+          let displayName = query;
 
-          for (const [key, val] of Object.entries(CITY_COORDINATES)) {
-            if (cleanQuery === key || cleanQuery.includes(key) || key.includes(cleanQuery)) {
-              coords = val;
-              displayName = key.toUpperCase();
-              break;
+          // 1. Check persistent geocache
+          try {
+            const cache = JSON.parse(localStorage.getItem('tttg_geo_cache') || '{}');
+            if (cache[cleanQuery] || cache[query]) {
+              coords = cache[cleanQuery] || cache[query];
+              displayName = query;
+            }
+          } catch (e) {}
+
+          // 2. Check built-in city coordinates
+          if (!coords) {
+            for (const [key, val] of Object.entries(CITY_COORDINATES)) {
+              if (cleanQuery === key || cleanQuery === `${key}, on` || cleanQuery === `${key}, ontario` || cleanQuery === `${key}, ca`) {
+                coords = val;
+                displayName = key.toUpperCase();
+                break;
+              }
             }
           }
 
-          // Fallback to OpenStreetMap Nominatim strictly within CA and US
+          // 3. Check partial city in query if not a specific street number
+          if (!coords && !/\d+/.test(cleanQuery)) {
+            for (const [key, val] of Object.entries(CITY_COORDINATES)) {
+              if (cleanQuery.includes(key) || key.includes(cleanQuery)) {
+                coords = val;
+                displayName = key.toUpperCase();
+                break;
+              }
+            }
+          }
+
+          // 4. Fallback to OpenStreetMap Nominatim strictly within CA and US
           if (!coords) {
-            const nominatimUrl = `https://nominatim.openstreetmap.org/search?format=json&limit=1&countrycodes=ca,us&q=${encodeURIComponent(searchQuery)}`;
-            const res = await fetch(nominatimUrl, { headers: { 'Accept-Language': 'en' } });
-            const data = await res.json();
-            if (data && data.length > 0) {
-              coords = [parseFloat(data[0].lat), parseFloat(data[0].lon)];
-              displayName = data[0].display_name.split(',').slice(0, 2).join(',');
+            try {
+              const nominatimUrl = `https://nominatim.openstreetmap.org/search?format=json&limit=1&countrycodes=ca,us&q=${encodeURIComponent(query)}`;
+              const res = await fetch(nominatimUrl, { headers: { 'Accept-Language': 'en' } });
+              if (res.ok) {
+                const data = await res.json();
+                if (Array.isArray(data) && data.length > 0) {
+                  coords = [parseFloat(data[0].lat), parseFloat(data[0].lon)];
+                  displayName = data[0].display_name.split(',').slice(0, 2).join(',').trim();
+                  
+                  // Save to persistent cache
+                  try {
+                    const cache = JSON.parse(localStorage.getItem('tttg_geo_cache') || '{}');
+                    cache[cleanQuery] = coords;
+                    cache[query] = coords;
+                    localStorage.setItem('tttg_geo_cache', JSON.stringify(cache));
+                  } catch (e) {}
+                }
+              }
+            } catch (fetchErr) {
+              console.warn('Nominatim network error:', fetchErr);
             }
           }
 
@@ -787,46 +855,49 @@
             setSearchAddressName(displayName);
 
             if (map) {
-              if (searchMarkerRef.current) map.removeLayer(searchMarkerRef.current);
-              if (radiusCircleRef.current) map.removeLayer(radiusCircleRef.current);
+              try {
+                if (searchMarkerRef.current) map.removeLayer(searchMarkerRef.current);
+                if (radiusCircleRef.current) map.removeLayer(radiusCircleRef.current);
 
-              const searchIcon = L.divIcon({
-                html: `
-                  <div class="relative flex items-center justify-center">
-                    <div class="w-8 h-8 rounded-full bg-stone-900 border-2 border-white shadow-xl flex items-center justify-center text-white text-xs font-bold candidate-pulse">
-                      📍
+                const searchIcon = L.divIcon({
+                  html: `
+                    <div class="relative flex items-center justify-center">
+                      <div class="w-8 h-8 rounded-full bg-stone-900 border-2 border-white shadow-xl flex items-center justify-center text-white text-xs font-bold candidate-pulse">
+                        📍
+                      </div>
                     </div>
-                  </div>
-                `,
-                className: 'search-user-marker',
-                iconSize: [32, 32],
-                iconAnchor: [16, 16]
-              });
+                  `,
+                  className: 'search-user-marker',
+                  iconSize: [32, 32],
+                  iconAnchor: [16, 16]
+                });
 
-              searchMarkerRef.current = L.marker(coords, { icon: searchIcon, zIndexOffset: 1000 })
-                .bindTooltip(`<b>Candidate Location</b><br/>${displayName}`, { permanent: true, direction: 'bottom', offset: [0, 10], className: 'custom-tooltip' })
-                .addTo(map);
+                searchMarkerRef.current = L.marker(coords, { icon: searchIcon, zIndexOffset: 1000 })
+                  .bindTooltip(`<b>Candidate Location</b><br/>${displayName}`, { permanent: true, direction: 'bottom', offset: [0, 10], className: 'custom-tooltip' })
+                  .addTo(map);
 
-              if (maxRadius !== 'ALL') {
-                const radiusMeters = parseInt(maxRadius) * (unit === 'mi' ? 1609.34 : 1000);
-                radiusCircleRef.current = L.circle(coords, {
-                  radius: radiusMeters,
-                  color: '#2B2723',
-                  fillColor: '#787165',
-                  fillOpacity: 0.1,
-                  weight: 1.5,
-                  dashArray: '4, 6'
-                }).addTo(map);
+                if (maxRadius !== 'ALL') {
+                  const radiusMeters = parseInt(maxRadius) * (unit === 'mi' ? 1609.34 : 1000);
+                  radiusCircleRef.current = L.circle(coords, {
+                    radius: radiusMeters,
+                    color: '#2B2723',
+                    fillColor: '#787165',
+                    fillOpacity: 0.1,
+                    weight: 1.5,
+                    dashArray: '4, 6'
+                  }).addTo(map);
+                }
+
+                map.flyTo(coords, 10, { duration: 1 });
+              } catch (mapErr) {
+                console.warn('Map marker positioning notice:', mapErr);
               }
-
-              map.flyTo(coords, 9, { duration: 1 });
             }
           } else {
-            alert(`Location "${searchQuery}" not found. Try including city & province/state (e.g., "London, ON").`);
+            alert(`Location "${query}" not found. Try entering city & province/state (e.g. "55 Mutual St, Toronto, ON").`);
           }
         } catch (err) {
-          console.error('Geocoding error:', err);
-          alert('Error resolving location.');
+          console.warn('Search geocode notice:', err);
         } finally {
           setIsSearchingLocation(false);
         }
@@ -1165,7 +1236,7 @@
               </div>
 
               {/* Scrollable Container */}
-              <div className="flex-1 overflow-y-auto p-3.5 space-y-3">
+              <div className="flex-1 overflow-y-auto p-3.5 space-y-3 overscroll-contain scroll-smooth custom-scrollbar">
                 {loading ? (
                   <div className="py-20 text-center text-stone-400 space-y-3">
                     <div className="w-7 h-7 border-2 border-stone-800 border-t-transparent rounded-full animate-spin mx-auto"></div>
