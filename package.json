@@ -1,0 +1,12 @@
+{
+  "name": "job-map-dashboard",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Interactive Job Map and Distance Ranking Dashboard for Top Tier Talent Group",
+  "scripts": {
+    "start": "npx serve ."
+  },
+  "keywords": ["leaflet", "recruiting", "talent", "distance-ranking", "jobs-map"],
+  "author": "JA Studio Consulting",
+  "license": "MIT"
+}

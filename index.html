@@ -1,0 +1,1128 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Top Tier Talent Group | Active Jobs Map & Distance Finder</title>
+  
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              50: '#f0fdf4',
+              100: '#dcfce7',
+              500: '#22c55e',
+              600: '#16a34a',
+              700: '#15803d',
+              900: '#14532d',
+            },
+            darkbg: {
+              800: '#1e293b',
+              900: '#0f172a',
+              950: '#020617',
+            }
+          }
+        }
+      }
+    }
+  </script>
+
+  <!-- Leaflet CSS & JS -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+
+  <!-- React 18 & Babel for direct in-browser compilation -->
+  <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+  <style>
+    /* Custom Leaflet styling */
+    .leaflet-popup-content-wrapper {
+      padding: 0;
+      border-radius: 12px;
+      overflow: hidden;
+      box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.2), 0 8px 10px -6px rgba(0, 0, 0, 0.2);
+    }
+    .leaflet-popup-content {
+      margin: 0 !important;
+      line-height: 1.4;
+    }
+    .leaflet-container {
+      font-family: inherit;
+    }
+    /* Custom pulsing marker */
+    .search-pulse {
+      box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.7);
+      animation: pulse-ring 1.8s infinite cubic-bezier(0.66, 0, 0, 1);
+    }
+    @keyframes pulse-ring {
+      to {
+        box-shadow: 0 0 0 24px rgba(59, 130, 246, 0);
+      }
+    }
+    /* Custom scrollbar */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: transparent;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: rgba(156, 163, 175, 0.5);
+      border-radius: 4px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: rgba(107, 114, 128, 0.8);
+    }
+  </style>
+</head>
+<body class="bg-slate-950 text-slate-100 antialiased overflow-hidden selection:bg-emerald-500 selection:text-white">
+  <div id="root"></div>
+
+  <script type="text/babel">
+    const { useState, useEffect, useRef, useMemo } = React;
+
+    // --- BUILT-IN COORDINATE DICTIONARY ---
+    const CITY_COORDINATES = {
+      // Ontario
+      "windsor, on": [42.3149, -83.0364],
+      "windsor, ontario": [42.3149, -83.0364],
+      "belleville, on": [44.1628, -77.3832],
+      "belleville, ontario": [44.1628, -77.3832],
+      "mississauga, on": [43.5890, -79.6441],
+      "mississauga, ontario": [43.5890, -79.6441],
+      "toronto, on": [43.6532, -79.3832],
+      "toronto, ontario": [43.6532, -79.3832],
+      "hamilton, on": [43.2557, -79.8711],
+      "hamilton, ontario": [43.2557, -79.8711],
+      "london, on": [42.9849, -81.2453],
+      "london, ontario": [42.9849, -81.2453],
+      "kitchener, on": [43.4516, -80.4925],
+      "waterloo, on": [43.4643, -80.5204],
+      "cambridge, on": [43.3616, -80.3144],
+      "guelph, on": [43.5448, -80.2482],
+      "markham, on": [43.8561, -79.3370],
+      "vaughan, on": [43.8563, -79.5085],
+      "brampton, on": [43.7315, -79.7624],
+      "oakville, on": [43.4675, -79.6877],
+      "burlington, on": [43.3255, -79.7990],
+      "barrie, on": [44.3894, -79.6903],
+      "oshawa, on": [43.8971, -78.8658],
+      "kingston, on": [44.2312, -76.4860],
+      "trenton, on": [44.1000, -77.5833],
+      "chatham, on": [42.4048, -82.1910],
+      "sarnia, on": [42.9745, -82.4066],
+      "ottawa, on": [45.4215, -75.6972],
+      // USA / California & Others
+      "anaheim, ca": [33.8366, -117.9143],
+      "anaheim, california": [33.8366, -117.9143],
+      "detroit, mi": [42.3314, -83.0458],
+      "detroit, michigan": [42.3314, -83.0458],
+      "los angeles, ca": [34.0522, -118.2437],
+      "irvine, ca": [33.6846, -117.8265],
+      "san francisco, ca": [37.7749, -122.4194],
+      "chicago, il": [41.8781, -87.6298],
+      "dallas, tx": [32.7767, -96.7970],
+      "houston, tx": [29.7604, -95.3698],
+      "austin, tx": [30.2672, -97.7431],
+      "new york, ny": [40.7128, -74.0060],
+      "atlanta, ga": [33.7490, -84.3880],
+      "boston, ma": [42.3601, -71.0589],
+      "seattle, wa": [47.6062, -122.3321],
+      "troy, mi": [42.5797, -83.1499],
+      "warren, mi": [42.4775, -83.0277],
+      "grand rapids, mi": [42.9634, -85.6681],
+      "montreal, qc": [45.5017, -73.5673]
+    };
+
+    // --- FALLBACK MOCK DATA ---
+    const MOCK_JOBS = [
+      {
+        "Job ID": "3677925",
+        "Job Title": "Mold Maker",
+        "Company": "Tycos Tool & Die, A division of Magna International",
+        "Client Contact": "Melanie Francis",
+        "Location": "Windsor, ON",
+        "Compensation": "35/hr - 39.38/hr",
+        "Date Opened": "2026-09-23",
+        "Owners": "Ja, Sarah",
+        "Status": "Active",
+        "Job Description": "Mould Maker, Field Service\n\nLocation: Windsor, Ontario area with regular trips to Detroit, MI.\n\nWork Arrangement: Field based, primarily at tool shops and customer sites.\nCompensation: Up to $39.38 per hour.\nShift: Days, with overtime eligibility.\nIndustry: Automotive tooling/plastic injection moulds."
+      },
+      {
+        "Job ID": "3673466",
+        "Job Title": "Marketing Director",
+        "Company": "Discount Tire & Service Centers",
+        "Client Contact": "Tansya Murillo, Donna Clark",
+        "Location": "Anaheim, CA",
+        "Compensation": "$120k/yr + bonus",
+        "Date Opened": "2026-09-16",
+        "Owners": "Ja",
+        "Status": "Active",
+        "Job Description": "Marketing Director\n\nLocation: Anaheim, California.\nWork Arrangement: Onsite.\nCompensation: $120,000 annually + performance-based bonus.\nOversee digital marketing, brand development, customer acquisition across multi-location network."
+      },
+      {
+        "Job ID": "3671343",
+        "Job Title": "VP of Site Operations",
+        "Company": "Discount Tire & Service Centers",
+        "Client Contact": "Tansya Murillo, Donna Clark",
+        "Location": "Anaheim, CA",
+        "Compensation": "200k/yr - 220k/yr",
+        "Date Opened": "2026-09-14",
+        "Owners": "Ja, Sarah",
+        "Status": "Active",
+        "Job Description": "Multi-Site Operations - VP\n\nLocation: Anaheim, CA.\nMandate: Help a fast-growing automotive service business strengthen, operationalize, and scale multi-site operations across retail network."
+      },
+      {
+        "Job ID": "3661896",
+        "Job Title": "Staff Accountant",
+        "Company": "Discount Tire & Service Centers",
+        "Client Contact": "Donald Carter, Donna Clark",
+        "Location": "Anaheim, CA",
+        "Compensation": "27/hr - 32/hr",
+        "Date Opened": "2026-08-28",
+        "Owners": "Candice, Ja, Lyn",
+        "Status": "Active",
+        "Job Description": "Staff Accountant\n\nLocation: Anaheim, California.\nGeneral ledger accounting, reconciliations, AP/AR, and inventory financial support."
+      },
+      {
+        "Job ID": "3654231",
+        "Job Title": "Electronics Engineering SME",
+        "Company": "Lumentis",
+        "Client Contact": "Engineering Dept",
+        "Location": "Belleville, ON",
+        "Compensation": "100k/yr - 130k/yr",
+        "Date Opened": "2026-08-17",
+        "Owners": "Ja, Sarah",
+        "Status": "Active",
+        "Job Description": "Electronics Manufacturing Subject Matter Expert\n\nLocation: Belleville, Ontario.\nLead SMT manufacturing process, equipment selection, and commissioning."
+      }
+    ];
+
+    // --- HAVERSINE DISTANCE FORMULA ---
+    function calculateDistance(lat1, lon1, lat2, lon2, unit = 'km') {
+      const R = unit === 'mi' ? 3958.8 : 6371; // Earth radius in mi or km
+      const dLat = (lat2 - lat1) * (Math.PI / 180);
+      const dLon = (lon2 - lon1) * (Math.PI / 180);
+      const a =
+        Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+        Math.cos(lat1 * (Math.PI / 180)) *
+        Math.cos(lat2 * (Math.PI / 180)) *
+        Math.sin(dLon / 2) *
+        Math.sin(dLon / 2);
+      const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+      return Math.round(R * c * 10) / 10;
+    }
+
+    // --- ROBUST CSV PARSER ---
+    function parseCSV(text) {
+      const lines = [];
+      let row = [];
+      let cell = '';
+      let inQuotes = false;
+
+      for (let i = 0; i < text.length; i++) {
+        const char = text[i];
+        const nextChar = text[i + 1];
+
+        if (char === '"') {
+          if (inQuotes && nextChar === '"') {
+            cell += '"';
+            i++;
+          } else {
+            inQuotes = !inQuotes;
+          }
+        } else if (char === ',' && !inQuotes) {
+          row.push(cell);
+          cell = '';
+        } else if ((char === '\r' || char === '\n') && !inQuotes) {
+          if (char === '\r' && nextChar === '\n') i++;
+          row.push(cell);
+          if (row.length > 0 && row.some(c => c.trim() !== '')) {
+            lines.push(row);
+          }
+          row = [];
+          cell = '';
+        } else {
+          cell += char;
+        }
+      }
+      if (cell !== '' || row.length > 0) {
+        row.push(cell);
+        lines.push(row);
+      }
+
+      if (lines.length < 2) return [];
+      const headers = lines[0].map(h => h.trim().replace(/^"|"$/g, ''));
+      return lines.slice(1).map(r => {
+        const obj = {};
+        headers.forEach((h, idx) => {
+          obj[h] = (r[idx] || '').trim();
+        });
+        return obj;
+      });
+    }
+
+    // Normalizes location text and tries coordinate lookup
+    function resolveCoordinates(locationStr, jobDescription = '') {
+      if (!locationStr || locationStr.trim() === '') {
+        // Fallback: search in description
+        const match = jobDescription.match(/Location:\s*([^\r\n,]+(?:,\s*[^\r\n]+)?)/i);
+        if (match && match[1]) {
+          locationStr = match[1].trim();
+        }
+      }
+
+      if (!locationStr) return null;
+
+      const cleaned = locationStr.toLowerCase().replace(/[^\w\s,]/g, '').trim();
+      
+      // Direct dictionary check
+      if (CITY_COORDINATES[cleaned]) {
+        return { latLng: CITY_COORDINATES[cleaned], resolvedName: locationStr };
+      }
+
+      // Check partial matches
+      for (const [key, coords] of Object.entries(CITY_COORDINATES)) {
+        if (cleaned.includes(key) || key.includes(cleaned)) {
+          return { latLng: coords, resolvedName: locationStr };
+        }
+      }
+
+      return null;
+    }
+
+    // --- JSONP GOOGLE SHEETS FETCHER (Zero CORS restrictions) ---
+    function fetchSheetViaJSONP(sheetId, sheetName) {
+      return new Promise((resolve, reject) => {
+        const callbackName = 'sheetCallback_' + Math.round(100000 * Math.random());
+        const script = document.createElement('script');
+        
+        window[callbackName] = function(data) {
+          try {
+            delete window[callbackName];
+            if (script.parentNode) script.parentNode.removeChild(script);
+            if (!data || !data.table) {
+              reject(new Error('Invalid table format from Google Sheets'));
+              return;
+            }
+            const headers = data.table.cols.map(c => (c.label || c.id || '').trim());
+            const rows = data.table.rows.map(r => {
+              const obj = {};
+              headers.forEach((h, idx) => {
+                const cell = r.c && r.c[idx];
+                obj[h] = cell && cell.v !== null && cell.v !== undefined ? String(cell.v) : (cell && cell.f ? String(cell.f) : '');
+              });
+              return obj;
+            });
+            resolve(rows);
+          } catch (e) {
+            reject(e);
+          }
+        };
+
+        script.src = `https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?sheet=${encodeURIComponent(sheetName)}&tqx=responseHandler:${callbackName}`;
+        script.onerror = () => {
+          delete window[callbackName];
+          if (script.parentNode) script.parentNode.removeChild(script);
+          reject(new Error('JSONP network error'));
+        };
+        document.body.appendChild(script);
+      });
+    }
+
+    // --- MAIN REACT APPLICATION ---
+    function App() {
+      const [jobs, setJobs] = useState([]);
+      const [loading, setLoading] = useState(true);
+      const [error, setError] = useState(null);
+      const [lastUpdated, setLastUpdated] = useState(null);
+
+      // Search & Filter State
+      const [searchQuery, setSearchQuery] = useState('');
+      const [searchCoords, setSearchCoords] = useState(null);
+      const [searchAddressName, setSearchAddressName] = useState('');
+      const [isSearchingLocation, setIsSearchingLocation] = useState(false);
+      const [keywordFilter, setKeywordFilter] = useState('');
+      const [selectedOwner, setSelectedOwner] = useState('ALL');
+      const [maxRadius, setMaxRadius] = useState('ALL');
+      const [unit, setUnit] = useState('km'); // 'km' | 'mi'
+
+      // Selection & Drawer State
+      const [selectedJob, setSelectedJob] = useState(null);
+      const [activeTab, setActiveTab] = useState('both'); // 'both' | 'map' | 'list' for responsive
+      const [copiedId, setCopiedId] = useState(null);
+
+      // Map references
+      const mapContainerRef = useRef(null);
+      const mapInstanceRef = useRef(null);
+      const markersRef = useRef({});
+      const searchMarkerRef = useRef(null);
+      const radiusCircleRef = useRef(null);
+
+      const CSV_URL = 'https://docs.google.com/spreadsheets/d/1RexJFAEWRwNjzeGThutrA0zMObu2g4r3q0Vu0uiDbQs/gviz/tq?tqx=out:csv&sheet=Jobs';
+
+      // 1. Fetch and Parse Data with JSONP & CSV support
+      const fetchJobs = async () => {
+        setLoading(true);
+        setError(null);
+        try {
+          let activeJobs = [];
+          
+          // Try JSONP loader first (bypasses CORS restrictions on file:// and web)
+          try {
+            const rawRows = await fetchSheetViaJSONP('1RexJFAEWRwNjzeGThutrA0zMObu2g4r3q0Vu0uiDbQs', 'Jobs');
+            activeJobs = rawRows.filter(j => (j['Status'] || '').toLowerCase() === 'active');
+          } catch (jsonpErr) {
+            console.warn('JSONP fetch failed, trying standard fetch:', jsonpErr);
+            const res = await fetch(CSV_URL);
+            if (!res.ok) throw new Error(`HTTP error ${res.status}`);
+            const csvText = await res.text();
+            const parsed = parseCSV(csvText);
+            activeJobs = parsed.filter(j => (j['Status'] || '').toLowerCase() === 'active');
+          }
+          
+          if (activeJobs.length === 0) {
+            throw new Error('No active jobs found.');
+          }
+
+          // Process and resolve coordinates
+          const enriched = activeJobs.map(job => {
+            const coordData = resolveCoordinates(job['Location'], job['Job Description']);
+            return {
+              ...job,
+              id: job['Job ID'] || Math.random().toString(),
+              coords: coordData ? coordData.latLng : null,
+              displayLocation: job['Location'] || (coordData ? coordData.resolvedName : 'Location on request')
+            };
+          });
+
+          setJobs(enriched);
+          setLastUpdated(new Date().toLocaleTimeString());
+        } catch (err) {
+          console.warn('Live fetch error, falling back to mock jobs:', err.message);
+          const enrichedMock = MOCK_JOBS.map(job => {
+            const coordData = resolveCoordinates(job['Location'], job['Job Description']);
+            return {
+              ...job,
+              id: job['Job ID'],
+              coords: coordData ? coordData.latLng : null,
+              displayLocation: job['Location']
+            };
+          });
+          setJobs(enrichedMock);
+          setError('Loaded cached records. Check connection or sheet permissions.');
+          setLastUpdated(new Date().toLocaleTimeString());
+        } finally {
+          setLoading(false);
+        }
+      };
+
+      useEffect(() => {
+        fetchJobs();
+      }, []);
+
+      // 2. Initialize Leaflet Map
+      useEffect(() => {
+        if (!mapContainerRef.current) return;
+
+        if (!mapInstanceRef.current) {
+          // Initialize map centered over Southern Ontario / Canada corridor
+          const map = L.map(mapContainerRef.current, {
+            center: [43.9, -79.8],
+            zoom: 7,
+            zoomControl: false
+          });
+
+          L.control.zoom({ position: 'bottomright' }).addTo(map);
+
+          // High-performance ESRI World Street Map (Free, no keys, no 403 blocks on file://)
+          L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}', {
+            attribution: 'Tiles &copy; Esri &mdash; Top Tier Talent Group',
+            maxZoom: 18
+          }).addTo(map);
+
+          mapInstanceRef.current = map;
+        }
+
+        return () => {
+          // Cleanup on unmount if needed
+        };
+      }, []);
+
+      // 3. Update Markers when jobs or selection change
+      useEffect(() => {
+        const map = mapInstanceRef.current;
+        if (!map) return;
+
+        // Clear existing markers
+        Object.values(markersRef.current).forEach(m => map.removeLayer(m));
+        markersRef.current = {};
+
+        const bounds = [];
+
+        jobs.forEach(job => {
+          if (!job.coords) return;
+          const [lat, lng] = job.coords;
+          bounds.push([lat, lng]);
+
+          const isSelected = selectedJob && selectedJob.id === job.id;
+
+          // Custom modern SVG Marker Pin
+          const iconHtml = `
+            <div class="relative group cursor-pointer transform transition-transform duration-200 ${isSelected ? 'scale-125 z-50' : 'hover:scale-110'}">
+              <div class="w-9 h-9 rounded-full ${isSelected ? 'bg-emerald-500 ring-4 ring-emerald-300' : 'bg-slate-900 border-2 border-emerald-500'} flex items-center justify-center shadow-lg text-white font-bold text-xs">
+                <span>💼</span>
+              </div>
+              ${isSelected ? '<div class="absolute -bottom-1 left-1/2 -translate-x-1/2 w-2 h-2 bg-emerald-500 rotate-45"></div>' : ''}
+            </div>
+          `;
+
+          const customIcon = L.divIcon({
+            html: iconHtml,
+            className: 'custom-job-pin',
+            iconSize: [36, 36],
+            iconAnchor: [18, 36],
+            popupAnchor: [0, -36]
+          });
+
+          const marker = L.marker([lat, lng], { icon: customIcon });
+
+          // Tooltip on Hover
+          marker.bindTooltip(`
+            <div class="text-xs font-semibold text-slate-800">
+              <p class="text-emerald-600 font-bold">${job['Job Title']}</p>
+              <p class="text-slate-500">${job['Company']}</p>
+            </div>
+          `, { direction: 'top', offset: [0, -30], opacity: 0.95 });
+
+          // Click Handler
+          marker.on('click', () => {
+            setSelectedJob(job);
+            const el = document.getElementById(`job-card-${job.id}`);
+            if (el) {
+              el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            }
+          });
+
+          marker.addTo(map);
+          markersRef.current[job.id] = marker;
+        });
+
+        // Default focus on Ontario / Canada region
+        const ontarioBounds = bounds.filter(([lat, lng]) => lat >= 41.5 && lat <= 46.5 && lng >= -84.0 && lng <= -74.0);
+        if (ontarioBounds.length > 0 && !searchCoords && !selectedJob) {
+          map.fitBounds(ontarioBounds, { padding: [50, 50], maxZoom: 8 });
+        } else if (!searchCoords && !selectedJob) {
+          map.setView([43.9, -79.8], 7);
+        }
+      }, [jobs, selectedJob, searchCoords]);
+
+      // 4. Geocode Location Search Query (Nominatim Fallback + Dictionary)
+      const handleLocationSearch = async (e) => {
+        if (e) e.preventDefault();
+        if (!searchQuery.trim()) {
+          setSearchCoords(null);
+          setSearchAddressName('');
+          if (searchMarkerRef.current && mapInstanceRef.current) {
+            mapInstanceRef.current.removeLayer(searchMarkerRef.current);
+            searchMarkerRef.current = null;
+          }
+          if (radiusCircleRef.current && mapInstanceRef.current) {
+            mapInstanceRef.current.removeLayer(radiusCircleRef.current);
+            radiusCircleRef.current = null;
+          }
+          return;
+        }
+
+        setIsSearchingLocation(true);
+        const map = mapInstanceRef.current;
+
+        try {
+          const cleanQuery = searchQuery.toLowerCase().trim();
+          let coords = null;
+          let displayName = searchQuery;
+
+          // Check built-in dictionary first
+          for (const [key, val] of Object.entries(CITY_COORDINATES)) {
+            if (cleanQuery === key || cleanQuery.includes(key) || key.includes(cleanQuery)) {
+              coords = val;
+              displayName = key.toUpperCase();
+              break;
+            }
+          }
+
+          // Fallback to OpenStreetMap Nominatim
+          if (!coords) {
+            const nominatimUrl = `https://nominatim.openstreetmap.org/search?format=json&limit=1&q=${encodeURIComponent(searchQuery)}`;
+            const res = await fetch(nominatimUrl, { headers: { 'Accept-Language': 'en' } });
+            const data = await res.json();
+            if (data && data.length > 0) {
+              coords = [parseFloat(data[0].lat), parseFloat(data[0].lon)];
+              displayName = data[0].display_name.split(',').slice(0, 2).join(',');
+            }
+          }
+
+          if (coords) {
+            setSearchCoords(coords);
+            setSearchAddressName(displayName);
+
+            // Update candidate search marker on map
+            if (map) {
+              if (searchMarkerRef.current) map.removeLayer(searchMarkerRef.current);
+              if (radiusCircleRef.current) map.removeLayer(radiusCircleRef.current);
+
+              const searchIcon = L.divIcon({
+                html: `
+                  <div class="relative flex items-center justify-center">
+                    <div class="w-8 h-8 rounded-full bg-blue-600 border-2 border-white shadow-xl flex items-center justify-center text-white text-sm font-bold search-pulse">
+                      📍
+                    </div>
+                  </div>
+                `,
+                className: 'search-user-marker',
+                iconSize: [32, 32],
+                iconAnchor: [16, 16]
+              });
+
+              searchMarkerRef.current = L.marker(coords, { icon: searchIcon, zIndexOffset: 1000 })
+                .bindTooltip(`<b>Candidate Location</b><br/>${displayName}`, { permanent: true, direction: 'bottom', offset: [0, 10] })
+                .addTo(map);
+
+              // Draw radius circle if selected
+              if (maxRadius !== 'ALL') {
+                const radiusMeters = parseInt(maxRadius) * (unit === 'mi' ? 1609.34 : 1000);
+                radiusCircleRef.current = L.circle(coords, {
+                  radius: radiusMeters,
+                  color: '#3b82f6',
+                  fillColor: '#60a5fa',
+                  fillOpacity: 0.12,
+                  weight: 2,
+                  dashArray: '5, 8'
+                }).addTo(map);
+              }
+
+              map.flyTo(coords, 9, { duration: 1.2 });
+            }
+          } else {
+            alert(`Location "${searchQuery}" not found. Try adding city and province/state (e.g., "London, ON").`);
+          }
+        } catch (err) {
+          console.error('Geocoding error:', err);
+          alert('Error resolving location. Please try another search term.');
+        } finally {
+          setIsSearchingLocation(false);
+        }
+      };
+
+      // 5. Unique Owners for Filter
+      const uniqueOwners = useMemo(() => {
+        const ownersSet = new Set();
+        jobs.forEach(j => {
+          if (j['Owners']) {
+            j['Owners'].split(',').forEach(o => ownersSet.add(o.trim()));
+          }
+        });
+        return Array.from(ownersSet).sort();
+      }, [jobs]);
+
+      // 6. Filter & Calculate Distances + Sort
+      const processedJobs = useMemo(() => {
+        return jobs
+          .map(job => {
+            let distance = null;
+            if (searchCoords && job.coords) {
+              distance = calculateDistance(
+                searchCoords[0],
+                searchCoords[1],
+                job.coords[0],
+                job.coords[1],
+                unit
+              );
+            }
+            return { ...job, distance };
+          })
+          .filter(job => {
+            // Keyword filter
+            if (keywordFilter.trim()) {
+              const kw = keywordFilter.toLowerCase();
+              const matchTitle = (job['Job Title'] || '').toLowerCase().includes(kw);
+              const matchCompany = (job['Company'] || '').toLowerCase().includes(kw);
+              const matchLoc = (job['displayLocation'] || '').toLowerCase().includes(kw);
+              const matchDesc = (job['Job Description'] || '').toLowerCase().includes(kw);
+              if (!matchTitle && !matchCompany && !matchLoc && !matchDesc) return false;
+            }
+
+            // Owner filter
+            if (selectedOwner !== 'ALL') {
+              const owners = (job['Owners'] || '').split(',').map(o => o.trim());
+              if (!owners.includes(selectedOwner)) return false;
+            }
+
+            // Radius filter
+            if (searchCoords && maxRadius !== 'ALL' && job.distance !== null) {
+              if (job.distance > parseInt(maxRadius)) return false;
+            }
+
+            return true;
+          })
+          .sort((a, b) => {
+            if (searchCoords) {
+              if (a.distance === null) return 1;
+              if (b.distance === null) return -1;
+              return a.distance - b.distance;
+            }
+            return 0; // maintain original order
+          });
+      }, [jobs, searchCoords, keywordFilter, selectedOwner, maxRadius, unit]);
+
+      // Center map on job card click
+      const handleSelectJob = (job) => {
+        setSelectedJob(job);
+        if (job.coords && mapInstanceRef.current) {
+          mapInstanceRef.current.flyTo(job.coords, 11, { duration: 1 });
+          const marker = markersRef.current[job.id];
+          if (marker) {
+            marker.openTooltip();
+          }
+        }
+      };
+
+      // Copy Job Pitch to Clipboard
+      const copyJobPitch = (job) => {
+        const text = `📌 Role: ${job['Job Title']}\n🏢 Company: ${job['Company']}\n📍 Location: ${job['displayLocation']}\n💰 Comp: ${job['Compensation'] || 'Competitive'}\n👤 Recruiter: ${job['Owners']}\n\nDescription:\n${job['Job Description']?.slice(0, 400)}...`;
+        navigator.clipboard.writeText(text);
+        setCopiedId(job.id);
+        setTimeout(() => setCopiedId(null), 2500);
+      };
+
+      return (
+        <div className="flex flex-col h-screen w-screen overflow-hidden bg-slate-950 font-sans">
+          
+          {/* HEADER / NAVIGATION */}
+          <header className="h-16 border-b border-slate-800 bg-slate-900/90 backdrop-blur px-4 flex items-center justify-between shrink-0 z-30">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-emerald-600 to-teal-400 flex items-center justify-center shadow-lg shadow-emerald-900/30">
+                <span className="text-xl">🗺️</span>
+              </div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <h1 className="font-bold text-base text-white tracking-tight">Top Tier Talent</h1>
+                  <span className="bg-emerald-500/20 text-emerald-400 text-xs px-2 py-0.5 rounded-full font-medium border border-emerald-500/30">Active Jobs Map</span>
+                </div>
+                <p className="text-xs text-slate-400 hidden sm:block">Real-time candidate radius search & distance ranking</p>
+              </div>
+            </div>
+
+            {/* Quick Status & Refresh */}
+            <div className="flex items-center gap-3">
+              <div className="hidden md:flex items-center gap-2 bg-slate-800/80 px-3 py-1.5 rounded-lg border border-slate-700 text-xs text-slate-300">
+                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
+                <span><b>{jobs.length}</b> Active Roles</span>
+                {lastUpdated && <span className="text-slate-500">| Synced {lastUpdated}</span>}
+              </div>
+
+              <button
+                onClick={fetchJobs}
+                title="Sync live from Google Sheets"
+                className="flex items-center gap-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 px-3 py-1.5 rounded-lg text-xs font-medium border border-slate-700 transition"
+              >
+                <span>🔄</span>
+                <span className="hidden sm:inline">Refresh Sheet</span>
+              </button>
+
+              {/* Mobile View Toggle */}
+              <div className="flex lg:hidden bg-slate-800 p-0.5 rounded-lg border border-slate-700 text-xs">
+                <button
+                  onClick={() => setActiveTab('map')}
+                  className={`px-3 py-1 rounded-md transition ${activeTab === 'map' ? 'bg-emerald-600 text-white' : 'text-slate-400'}`}
+                >
+                  Map
+                </button>
+                <button
+                  onClick={() => setActiveTab('list')}
+                  className={`px-3 py-1 rounded-md transition ${activeTab === 'list' ? 'bg-emerald-600 text-white' : 'text-slate-400'}`}
+                >
+                  List ({processedJobs.length})
+                </button>
+              </div>
+            </div>
+          </header>
+
+          {/* SEARCH & FILTERS BAR */}
+          <div className="border-b border-slate-800 bg-slate-900/60 p-3 shrink-0 z-20">
+            <div className="max-w-7xl mx-auto flex flex-wrap items-center gap-2 sm:gap-3">
+              
+              {/* Location Distance Search Form */}
+              <form onSubmit={handleLocationSearch} className="flex-1 min-w-[280px] flex items-center relative">
+                <div className="absolute left-3 text-slate-400 text-sm">📍</div>
+                <input
+                  type="text"
+                  placeholder="Type candidate location (e.g. Detroit, Windsor, London ON)..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="w-full pl-9 pr-24 py-2 bg-slate-800 border border-slate-700 focus:border-emerald-500 rounded-lg text-sm text-white placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-emerald-500 transition"
+                />
+                <div className="absolute right-1.5 flex items-center gap-1">
+                  {searchCoords && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSearchQuery('');
+                        setSearchCoords(null);
+                        setSearchAddressName('');
+                      }}
+                      className="text-xs text-slate-400 hover:text-white px-1.5 py-1"
+                    >
+                      ✕
+                    </button>
+                  )}
+                  <button
+                    type="submit"
+                    disabled={isSearchingLocation}
+                    className="bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white px-3 py-1 rounded-md text-xs font-semibold shadow transition flex items-center gap-1"
+                  >
+                    {isSearchingLocation ? 'Finding...' : 'Rank Distance'}
+                  </button>
+                </div>
+              </form>
+
+              {/* Keyword Filter */}
+              <div className="w-44 shrink-0 relative">
+                <input
+                  type="text"
+                  placeholder="Filter title/skill..."
+                  value={keywordFilter}
+                  onChange={(e) => setKeywordFilter(e.target.value)}
+                  className="w-full px-3 py-2 bg-slate-800 border border-slate-700 focus:border-emerald-500 rounded-lg text-sm text-white placeholder-slate-400 focus:outline-none text-xs"
+                />
+                {keywordFilter && (
+                  <button onClick={() => setKeywordFilter('')} className="absolute right-2.5 top-2 text-xs text-slate-400">✕</button>
+                )}
+              </div>
+
+              {/* Owner Filter */}
+              <select
+                value={selectedOwner}
+                onChange={(e) => setSelectedOwner(e.target.value)}
+                className="bg-slate-800 border border-slate-700 text-slate-200 text-xs rounded-lg px-2.5 py-2 focus:outline-none focus:border-emerald-500"
+              >
+                <option value="ALL">All Owners</option>
+                {uniqueOwners.map(o => (
+                  <option key={o} value={o}>{o}</option>
+                ))}
+              </select>
+
+              {/* Radius Filter */}
+              {searchCoords && (
+                <div className="flex items-center gap-1.5 bg-slate-800 border border-slate-700 px-2.5 py-1.5 rounded-lg text-xs">
+                  <span className="text-slate-400">Max Radius:</span>
+                  <select
+                    value={maxRadius}
+                    onChange={(e) => setMaxRadius(e.target.value)}
+                    className="bg-transparent text-emerald-400 font-semibold focus:outline-none cursor-pointer"
+                  >
+                    <option value="ALL" className="bg-slate-800 text-white">Any distance</option>
+                    <option value="25" className="bg-slate-800 text-white">Within 25 {unit}</option>
+                    <option value="50" className="bg-slate-800 text-white">Within 50 {unit}</option>
+                    <option value="100" className="bg-slate-800 text-white">Within 100 {unit}</option>
+                    <option value="250" className="bg-slate-800 text-white">Within 250 {unit}</option>
+                  </select>
+                </div>
+              )}
+
+              {/* KM / Miles Unit Toggle */}
+              <div className="flex bg-slate-800 border border-slate-700 rounded-lg p-0.5 text-xs">
+                <button
+                  onClick={() => setUnit('km')}
+                  className={`px-2 py-1 rounded ${unit === 'km' ? 'bg-slate-700 text-white font-bold' : 'text-slate-400'}`}
+                >
+                  km
+                </button>
+                <button
+                  onClick={() => setUnit('mi')}
+                  className={`px-2 py-1 rounded ${unit === 'mi' ? 'bg-slate-700 text-white font-bold' : 'text-slate-400'}`}
+                >
+                  mi
+                </button>
+              </div>
+
+            </div>
+
+            {/* Candidate Search Active Pill */}
+            {searchCoords && (
+              <div className="max-w-7xl mx-auto mt-2 flex items-center justify-between bg-blue-950/40 border border-blue-800/60 px-3 py-1.5 rounded-lg text-xs text-blue-300">
+                <div className="flex items-center gap-2">
+                  <span>📍 Ranked by proximity to: <b>{searchAddressName}</b></span>
+                  <span className="bg-blue-600/30 text-blue-300 px-2 py-0.5 rounded text-[10px] font-mono">
+                    [{searchCoords[0].toFixed(2)}, {searchCoords[1].toFixed(2)}]
+                  </span>
+                </div>
+                <button
+                  onClick={() => {
+                    setSearchQuery('');
+                    setSearchCoords(null);
+                    setSearchAddressName('');
+                  }}
+                  className="text-blue-400 hover:text-white underline text-xs"
+                >
+                  Clear search
+                </button>
+              </div>
+            )}
+          </div>
+
+          {/* MAIN WORKSPACE SPLIT */}
+          <div className="flex-1 flex overflow-hidden relative">
+
+            {/* LEFT / SIDEBAR: RANKED JOB CARDS LIST */}
+            <div className={`w-full lg:w-[460px] xl:w-[500px] border-r border-slate-800 bg-slate-900/40 flex flex-col shrink-0 overflow-hidden ${activeTab === 'map' ? 'hidden lg:flex' : 'flex'}`}>
+              
+              {/* List Header */}
+              <div className="p-3 bg-slate-900/80 border-b border-slate-800 flex items-center justify-between text-xs text-slate-400">
+                <span>Showing <b>{processedJobs.length}</b> Active Roles {searchCoords ? '(Sorted by Distance)' : ''}</span>
+                {searchCoords && <span className="text-emerald-400 font-medium">Nearest first ⬇️</span>}
+              </div>
+
+              {/* Scrollable Cards Container */}
+              <div className="flex-1 overflow-y-auto p-3 space-y-3">
+                {loading ? (
+                  <div className="py-20 text-center text-slate-400 space-y-3">
+                    <div className="w-8 h-8 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin mx-auto"></div>
+                    <p className="text-sm">Fetching live jobs from Google Sheet...</p>
+                  </div>
+                ) : processedJobs.length === 0 ? (
+                  <div className="py-20 text-center text-slate-400 space-y-2">
+                    <p className="text-2xl">🔍</p>
+                    <p className="text-sm font-medium text-slate-300">No active jobs match your filters</p>
+                    <p className="text-xs text-slate-500">Try adjusting your radius or search term.</p>
+                  </div>
+                ) : (
+                  processedJobs.map((job, index) => {
+                    const isSelected = selectedJob && selectedJob.id === job.id;
+                    return (
+                      <div
+                        id={`job-card-${job.id}`}
+                        key={job.id}
+                        onClick={() => handleSelectJob(job)}
+                        className={`p-4 rounded-xl border transition-all cursor-pointer relative ${
+                          isSelected
+                            ? 'bg-slate-800/90 border-emerald-500 shadow-lg shadow-emerald-950/40 ring-1 ring-emerald-500'
+                            : 'bg-slate-900/80 hover:bg-slate-800/60 border-slate-800 hover:border-slate-700'
+                        }`}
+                      >
+                        {/* Top row: Title + Distance / Index */}
+                        <div className="flex items-start justify-between gap-2">
+                          <div>
+                            <div className="flex items-center gap-2">
+                              <span className="text-xs font-mono text-slate-500">#{index + 1}</span>
+                              <h3 className="font-semibold text-white text-sm hover:text-emerald-400 transition">
+                                {job['Job Title']}
+                              </h3>
+                            </div>
+                            <p className="text-xs text-emerald-400 font-medium mt-0.5">{job['Company']}</p>
+                          </div>
+
+                          {/* Distance Badge */}
+                          {job.distance !== null ? (
+                            <span className="bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 text-xs px-2.5 py-1 rounded-full font-bold whitespace-nowrap flex items-center gap-1 shrink-0">
+                              <span>📍</span> {job.distance} {unit}
+                            </span>
+                          ) : (
+                            <span className="text-[10px] bg-slate-800 text-slate-400 px-2 py-0.5 rounded border border-slate-700">
+                              {job.displayLocation}
+                            </span>
+                          )}
+                        </div>
+
+                        {/* Location & Compensation */}
+                        <div className="mt-2.5 flex flex-wrap items-center gap-x-4 gap-y-1.5 text-xs text-slate-400">
+                          <div className="flex items-center gap-1">
+                            <span>📌</span>
+                            <span>{job.displayLocation}</span>
+                          </div>
+                          {job['Compensation'] && (
+                            <div className="flex items-center gap-1 text-slate-300 font-medium">
+                              <span>💰</span>
+                              <span>{job['Compensation']}</span>
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Recruiter & Actions */}
+                        <div className="mt-3 pt-2.5 border-t border-slate-800 flex items-center justify-between text-xs">
+                          <span className="text-slate-500">
+                            Owner: <span className="text-slate-400">{job['Owners'] || 'N/A'}</span>
+                          </span>
+
+                          <div className="flex items-center gap-2">
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                copyJobPitch(job);
+                              }}
+                              className="text-[11px] bg-slate-800 hover:bg-slate-700 text-slate-300 px-2 py-1 rounded border border-slate-700 transition"
+                            >
+                              {copiedId === job.id ? '✓ Copied!' : '📋 Copy Pitch'}
+                            </button>
+
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setSelectedJob(job);
+                              }}
+                              className="text-[11px] text-emerald-400 hover:text-emerald-300 font-medium"
+                            >
+                              Details &rarr;
+                            </button>
+                          </div>
+                        </div>
+
+                      </div>
+                    );
+                  })
+                )}
+              </div>
+            </div>
+
+            {/* RIGHT: INTERACTIVE MAP CONTAINER */}
+            <div className={`flex-1 relative h-full bg-slate-950 ${activeTab === 'list' ? 'hidden lg:block' : 'block'}`}>
+              <div ref={mapContainerRef} className="w-full h-full z-10" />
+
+              {/* Map Floating Overlay Controls */}
+              <div className="absolute top-4 right-4 z-20 flex items-center gap-2">
+                <button
+                  onClick={() => {
+                    if (mapInstanceRef.current && jobs.length > 0) {
+                      const ontarioCoords = jobs
+                        .filter(j => j.coords && j.coords[0] >= 41.5 && j.coords[0] <= 46.5 && j.coords[1] >= -84.0 && j.coords[1] <= -74.0)
+                        .map(j => j.coords);
+                      if (ontarioCoords.length > 0) {
+                        mapInstanceRef.current.fitBounds(ontarioCoords, { padding: [50, 50], maxZoom: 8 });
+                      } else {
+                        mapInstanceRef.current.setView([43.9, -79.8], 7);
+                      }
+                    }
+                  }}
+                  className="bg-slate-900/90 hover:bg-slate-800 text-white text-xs px-3 py-2 rounded-lg border border-slate-700 shadow-xl backdrop-blur font-medium transition flex items-center gap-1.5"
+                >
+                  <span>🍁</span> Focus Ontario
+                </button>
+                <button
+                  onClick={() => {
+                    if (mapInstanceRef.current && jobs.length > 0) {
+                      const validCoords = jobs.filter(j => j.coords).map(j => j.coords);
+                      if (validCoords.length > 0) {
+                        mapInstanceRef.current.fitBounds(validCoords, { padding: [50, 50] });
+                      }
+                    }
+                  }}
+                  className="bg-slate-900/90 hover:bg-slate-800 text-white text-xs px-3 py-2 rounded-lg border border-slate-700 shadow-xl backdrop-blur font-medium transition flex items-center gap-1.5"
+                >
+                  <span>🌐</span> All Pins
+                </button>
+              </div>
+
+              {/* SLIDE-OUT DETAIL DRAWER / POPUP */}
+              {selectedJob && (
+                <div className="absolute top-4 left-4 right-4 sm:right-auto sm:w-96 max-h-[85%] bg-slate-900/95 border border-slate-700 rounded-2xl shadow-2xl backdrop-blur z-30 flex flex-col overflow-hidden animate-in fade-in slide-in-from-left duration-200">
+                  
+                  {/* Drawer Header */}
+                  <div className="p-4 border-b border-slate-800 flex items-start justify-between bg-slate-800/50">
+                    <div>
+                      <span className="text-[10px] font-mono uppercase tracking-wider text-emerald-400 font-bold">Job Details</span>
+                      <h2 className="text-base font-bold text-white mt-0.5">{selectedJob['Job Title']}</h2>
+                      <p className="text-xs text-slate-300 font-medium">{selectedJob['Company']}</p>
+                    </div>
+                    <button
+                      onClick={() => setSelectedJob(null)}
+                      className="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-slate-800 transition"
+                    >
+                      ✕
+                    </button>
+                  </div>
+
+                  {/* Drawer Content */}
+                  <div className="p-4 overflow-y-auto space-y-3.5 text-xs text-slate-300 flex-1">
+                    
+                    {/* Quick Specs Grid */}
+                    <div className="grid grid-cols-2 gap-2 bg-slate-950/60 p-2.5 rounded-xl border border-slate-800">
+                      <div>
+                        <span className="text-slate-500 text-[10px] block">Location</span>
+                        <span className="font-semibold text-white">{selectedJob.displayLocation}</span>
+                      </div>
+                      <div>
+                        <span className="text-slate-500 text-[10px] block">Compensation</span>
+                        <span className="font-semibold text-emerald-400">{selectedJob['Compensation'] || 'Not listed'}</span>
+                      </div>
+                      <div>
+                        <span className="text-slate-500 text-[10px] block">Job ID</span>
+                        <span className="font-mono text-slate-300">{selectedJob['Job ID']}</span>
+                      </div>
+                      <div>
+                        <span className="text-slate-500 text-[10px] block">Owner(s)</span>
+                        <span className="font-medium text-slate-300">{selectedJob['Owners'] || 'N/A'}</span>
+                      </div>
+                      {selectedJob['Client Contact'] && (
+                        <div className="col-span-2">
+                          <span className="text-slate-500 text-[10px] block">Client Contact</span>
+                          <span className="text-slate-300">{selectedJob['Client Contact']}</span>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Job Description */}
+                    <div>
+                      <h4 className="font-semibold text-slate-200 mb-1.5 flex items-center justify-between">
+                        <span>Role Overview</span>
+                        <button
+                          onClick={() => copyJobPitch(selectedJob)}
+                          className="text-emerald-400 hover:text-emerald-300 text-[11px] font-normal"
+                        >
+                          {copiedId === selectedJob.id ? '✓ Pitch Copied!' : 'Copy Summary'}
+                        </button>
+                      </h4>
+                      <div className="bg-slate-950/40 p-3 rounded-xl border border-slate-800/80 text-slate-300 whitespace-pre-wrap leading-relaxed max-h-60 overflow-y-auto text-[11px]">
+                        {selectedJob['Job Description'] || 'No full description provided.'}
+                      </div>
+                    </div>
+
+                  </div>
+
+                  {/* Drawer Footer Actions */}
+                  <div className="p-3 border-t border-slate-800 bg-slate-900 flex items-center justify-between gap-2">
+                    <button
+                      onClick={() => copyJobPitch(selectedJob)}
+                      className="flex-1 bg-emerald-600 hover:bg-emerald-500 text-white font-medium py-2 rounded-lg text-xs transition shadow flex items-center justify-center gap-1.5"
+                    >
+                      <span>📋</span>
+                      <span>{copiedId === selectedJob.id ? 'Copied to Clipboard!' : 'Copy Pitch for Candidate'}</span>
+                    </button>
+                  </div>
+
+                </div>
+              )}
+
+            </div>
+
+          </div>
+
+        </div>
+      );
+    }
+
+    const root = ReactDOM.createRoot(document.getElementById('root'));
+    root.render(<App />);
+  </script>
+</body>
+</html>
