@@ -1,10 +1,10 @@
-# 🗺️ Top Tier Talent Group — Job Map & Proximity Radar (v2.4)
+# 🗺️ Top Tier Talent Group — Job Map & Proximity Radar
 
-An interactive single-page web dashboard built for **Top Tier Talent Group** to visualize active job openings across Ontario and North America, calculate candidate commute proximity in real-time, and streamline recruiter pitches.
+An interactive, single-page web dashboard built for **Top Tier Talent Group** to visualize active job openings across Ontario and North America, calculate candidate commute proximity in real-time, and streamline recruiter candidate pitches.
 
 * **Live URL:** [https://jastudioconsulting.github.io/job-map-dashboard/](https://jastudioconsulting.github.io/job-map-dashboard/)
 * **Recruiter Passcode:** `TTTG2026`
-* **Source Code:** [https://github.com/JaStudioConsulting/job-map-dashboard](https://github.com/JaStudioConsulting/job-map-dashboard)
+* **GitHub Repository:** [https://github.com/JaStudioConsulting/job-map-dashboard](https://github.com/JaStudioConsulting/job-map-dashboard)
 
 ---
 
@@ -27,8 +27,8 @@ An interactive single-page web dashboard built for **Top Tier Talent Group** to 
    - Open the live link: `https://jastudioconsulting.github.io/job-map-dashboard/`
    - Enter team passcode: `TTTG2026`.
 2. **Finding the Closest Roles to a Candidate:**
-   - Type candidate's city, town, or postal code in the **Candidate Location** search box (e.g. `London, ON` or `N6A 1A1`).
-   - Click **Find Matches** or press Enter.
+   - Start typing any candidate location (e.g. `80 Dalhousie`, `55 Mutual St, Toronto`, `Windsor`, `London, ON`, or postal code `N6A 1A1`).
+   - **Uber-Style Autocomplete:** Live suggestions pop up as you type. Click any suggestion or use `↓`/`↑` and press `Enter`.
    - The job list instantly re-ranks with nearest roles at the top and displays exact distance (`📍 12.4 km away`).
 3. **Filtering by Recruiter or Commute Radius:**
    - Filter by Recruiter owner (`Ja`, `Sarah`, `Candice`, `Lyn`, etc.).
@@ -108,12 +108,13 @@ If you have the exact facility address or postal code, enter it directly in the 
 The dashboard is built as a self-contained, high-reliability Single-Page Application (SPA):
 
 * **Runtime:** Zero-build React 18 & ReactDOM loaded via CDN.
-* **Styling:** Tailwind CSS CDN customized with Top Tier Talent's executive stone & charcoal theme (`#FAF9F6` background, stone borders, emerald compensation pills).
-* **Mapping Engine:** Leaflet.js with standard OpenStreetMap tile layers for 100% global coverage.
+* **Styling:** Tailwind CSS CDN customized with Top Tier Talent Group's executive stone & charcoal theme (`#FAF9F6` background, stone borders, emerald compensation pills).
+* **Mapping Engine:** Leaflet.js with standard OpenStreetMap tile layers, fractional smooth zoom (`zoomSnap: 0.25`), and momentum inertia.
 * **Dual Ingestion Engine:**
   1. **Primary:** Google Visualization JSONP API (`/gviz/tq?sheet=Jobs&tqx=responseHandler:...`) — completely bypasses browser CORS restrictions on static file and GitHub Pages environments.
   2. **Secondary Fallback:** Direct CSV fetch with custom quote-aware CSV parser.
   3. **Offline Fallback:** Cached sample dataset if network is unavailable.
+* **Typeahead Engine:** High-speed OSM Photon autocomplete API combined with local preloaded dictionary and cache.
 * **Security:** Recruiter gatekeeper (`TTTG2026`) stored in `localStorage` (`tttg_radar_auth`), with robots `noindex, nofollow` to prevent indexing on public search engines.
 
 ---

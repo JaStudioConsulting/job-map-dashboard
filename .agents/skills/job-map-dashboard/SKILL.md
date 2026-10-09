@@ -45,6 +45,9 @@ This skill guides AI agents on maintaining, updating, and debugging the **Top Ti
   - `CITY_COORDINATES`: Preloaded lookup dictionary for Ontario & North American hubs.
   - Persistent Geocache: Stored in `localStorage.getItem('tttg_geo_cache')`.
   - Background Exact Geocoder: `geocodeExactAddresses(jobList)` queries OpenStreetMap Nominatim for exact street addresses (with 650ms rate limit) and caches results.
+* **Uber-Style Live Address Autocomplete:**
+  - Debounced typeahead queries OSM Photon API (`https://photon.komoot.io/api/?q=...&limit=5&lat=43.7&lon=-79.4`) biased towards Ontario / North America.
+  - Floating dropdown with mouse and keyboard navigation (`↑`/`↓` + `Enter`).
 
 ## 5. Candidate Distance Calculation
 * **Haversine Formula:** `calculateDistance(lat1, lon1, lat2, lon2, unit)` calculates straight-line distance in `km` or `mi`.
@@ -60,4 +63,4 @@ This skill guides AI agents on maintaining, updating, and debugging the **Top Ti
      git commit -m "feat/fix: description of change"
      git push origin main
      ```
-  3. Verify deployment live at `https://jastudioconsulting.github.io/job-map-dashboard/?v=latest`.
+  3. Verify deployment live at `https://jastudioconsulting.github.io/job-map-dashboard/`.
