@@ -68,7 +68,10 @@
     }
     .leaflet-container {
       font-family: inherit;
-      background: #F5F3EF;
+      background-color: #F5F3EF !important;
+      width: 100% !important;
+      height: 100% !important;
+      min-height: 100% !important;
     }
     .custom-tooltip {
       background: #1C1916 !important;
@@ -520,6 +523,16 @@
           resizeObserver.observe(mapContainerRef.current);
         }
       }, [isAuthenticated]);
+
+      // Ensure map always recalculates full screen tiles on data updates
+      useEffect(() => {
+        if (mapInstanceRef.current) {
+          const timer = setTimeout(() => {
+            mapInstanceRef.current.invalidateSize();
+          }, 250);
+          return () => clearTimeout(timer);
+        }
+      }, [jobs, searchCoords, activeTab]);
 
       // 3. Update Markers with Warm Executive Pin Design
       useEffect(() => {
