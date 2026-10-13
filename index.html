@@ -1204,14 +1204,16 @@
       const spreadCandidates = useMemo(() => {
         const cityMap = {};
         candidates.forEach(cand => {
-          if (!cand.coords) return;
+          if (!cand.coords || !Array.isArray(cand.coords) || typeof cand.coords[0] !== 'number' || isNaN(cand.coords[0]) || typeof cand.coords[1] !== 'number' || isNaN(cand.coords[1])) return;
           const key = `${cand.coords[0].toFixed(3)},${cand.coords[1].toFixed(3)}`;
           if (!cityMap[key]) cityMap[key] = [];
           cityMap[key].push(cand);
         });
 
         return candidates.map(cand => {
-          if (!cand.coords) return { ...cand, spreadCoords: null };
+          if (!cand.coords || !Array.isArray(cand.coords) || typeof cand.coords[0] !== 'number' || isNaN(cand.coords[0]) || typeof cand.coords[1] !== 'number' || isNaN(cand.coords[1])) {
+            return { ...cand, spreadCoords: null };
+          }
           const key = `${cand.coords[0].toFixed(3)},${cand.coords[1].toFixed(3)}`;
           const group = cityMap[key] || [cand];
           const index = group.findIndex(c => c.id === cand.id);
@@ -1277,7 +1279,7 @@
         // 3a. Plot Jobs (when showJobsLayer is active)
         if (showJobsLayer) {
           processedJobs.forEach(job => {
-            if (!job.coords) return;
+            if (!job.coords || !Array.isArray(job.coords) || isNaN(job.coords[0]) || isNaN(job.coords[1])) return;
             const [lat, lng] = job.coords;
             const isSelected = selectedJob && selectedJob.id === job.id;
 
@@ -1327,7 +1329,7 @@
         if (showCandidatesLayer) {
           spreadCandidates.forEach(cand => {
             const plotCoords = cand.spreadCoords || cand.coords;
-            if (!plotCoords) return;
+            if (!plotCoords || !Array.isArray(plotCoords) || isNaN(plotCoords[0]) || isNaN(plotCoords[1])) return;
 
             const isPinned = pinnedCandidateId === cand.id;
 
@@ -3136,9 +3138,11 @@
                               </a>
                             )}
                           </div>
-                        );
-                      })
-                    )}
+
+                        </div>
+                      );
+                    })
+                  )}
                   </div>
 
                   {/* Drawer Footer Actions */}
