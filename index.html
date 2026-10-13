@@ -1123,7 +1123,10 @@
       const handleSelectJob = (job) => {
         setSelectedJob(job);
         if (job.coords && mapInstanceRef.current) {
-          mapInstanceRef.current.flyTo(job.coords, 11, { duration: 1 });
+          const currentZoom = mapInstanceRef.current.getZoom();
+          // Keep view wide enough (max zoom 9 instead of 11) so nearby pins don't disappear off-screen
+          const targetZoom = Math.min(Math.max(currentZoom, 8.5), 9.5);
+          mapInstanceRef.current.flyTo(job.coords, targetZoom, { duration: 0.8 });
           const marker = markersRef.current[job.id];
           if (marker) {
             marker.openTooltip();
@@ -1507,12 +1510,9 @@
                         {/* Top row: Title + Salary / Rate Pill */}
                         <div className="flex items-start justify-between gap-2">
                           <div className="flex-1 pr-2">
-                            <div className="flex items-center gap-1.5">
-                              <span className="text-[10px] font-mono text-stone-400 font-medium">#{index + 1}</span>
-                              <h3 className="font-bold text-stone-900 text-sm hover:text-stone-700 transition leading-snug">
-                                {job['Job Title']}
-                              </h3>
-                            </div>
+                            <h3 className="font-bold text-stone-900 text-sm hover:text-stone-700 transition leading-snug">
+                              {job['Job Title']}
+                            </h3>
                             <p className="text-xs text-stone-600 font-medium mt-0.5">{job['Company']}</p>
                           </div>
 
