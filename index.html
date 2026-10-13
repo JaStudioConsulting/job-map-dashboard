@@ -1200,26 +1200,68 @@
         }
       }, [jobs, searchCoords, activeTab, sidebarWidth, isSidebarCollapsed]);
 
-      // Candidates grouped by generalized city/coordinates for map pin clusters
-      const candidateCityGroups = useMemo(() => {
-        const groups = {};
+      // Candidates with organic, non-overlapping geographic dispersion spread around their city hub
+      const spreadCandidates = useMemo(() => {
+        const cityMap = {};
         candidates.forEach(cand => {
           if (!cand.coords) return;
           const key = `${cand.coords[0].toFixed(3)},${cand.coords[1].toFixed(3)}`;
-          if (!groups[key]) {
-            groups[key] = {
-              key,
-              coords: cand.coords,
-              cityName: cand.location || 'Unknown Location',
-              candidates: []
-            };
-          }
-          groups[key].candidates.push(cand);
+          if (!cityMap[key]) cityMap[key] = [];
+          cityMap[key].push(cand);
         });
-        return Object.values(groups);
+
+        return candidates.map(cand => {
+          if (!cand.coords) return { ...cand, spreadCoords: null };
+          const key = `${cand.coords[0].toFixed(3)},${cand.coords[1].toFixed(3)}`;
+          const group = cityMap[key] || [cand];
+          const index = group.findIndex(c => c.id === cand.id);
+          const totalInCity = group.length;
+
+          // Deterministic hash based on ID and name
+          let hash = 0;
+          const str = (cand.id || '') + (cand.name || '');
+          for (let j = 0; j < str.length; j++) {
+            hash = (hash << 5) - hash + str.charCodeAt(j);
+            hash |= 0;
+          }
+          hash = Math.abs(hash);
+
+          const [baseLat, baseLng] = cand.coords;
+          let spreadCoords;
+
+          if (totalInCity <= 1) {
+            spreadCoords = cand.coords;
+          } else {
+            // Golden angle spiral (137.5 deg) gives maximum non-overlapping dispersion
+            const angle = (index * 2.39996) + ((hash % 100) / 100) * 0.45;
+            // Radius spreads outward from ~0.6 km to ~3.8 km based on candidate count
+            const radiusKm = 0.55 + (0.5 * Math.sqrt(index)) + ((hash % 60) / 100) * 0.35;
+
+            let latOffset = (radiusKm / 111.0) * Math.cos(angle);
+            const lngOffset = (radiusKm / (111.0 * Math.cos(baseLat * (Math.PI / 180)))) * Math.sin(angle);
+
+            // In Toronto (where south is Lake Ontario), bias slightly northwards to keep on land
+            if (baseLat >= 43.6 && baseLat <= 43.72 && baseLng >= -79.55 && baseLng <= -79.25) {
+              if (latOffset < -0.008) {
+                latOffset = Math.abs(latOffset) * 0.55;
+              }
+            }
+
+            spreadCoords = [
+              Math.round((baseLat + latOffset) * 100000) / 100000,
+              Math.round((baseLng + lngOffset) * 100000) / 100000
+            ];
+          }
+
+          return {
+            ...cand,
+            spreadCoords,
+            cityCandidates: group
+          };
+        });
       }, [candidates]);
 
-      // 3. Update Markers (Jobs & Candidate City Clusters)
+      // 3. Update Markers (Jobs & Candidates with identical size, styling, and organic geographic spread)
       useEffect(() => {
         const map = mapInstanceRef.current;
         if (!map) return;
@@ -1228,7 +1270,7 @@
         Object.values(markersRef.current).forEach(m => map.removeLayer(m));
         markersRef.current = {};
 
-        // Clear previous candidate city markers
+        // Clear previous candidate markers
         Object.values(candidateCityMarkersRef.current).forEach(m => map.removeLayer(m));
         candidateCityMarkersRef.current = {};
 
@@ -1239,10 +1281,12 @@
             const [lat, lng] = job.coords;
             const isSelected = selectedJob && selectedJob.id === job.id;
 
-            // Pure Emoji Marker
+            // Unified Executive Pin Design: w-8 h-8 white circular badge with border-2 border-stone-800 shadow-md
             const iconHtml = `
-              <div class="relative cursor-pointer transform transition-all duration-200 select-none flex flex-col items-center justify-center ${isSelected ? 'scale-125 -translate-y-1 z-50' : 'hover:scale-125 hover:-translate-y-0.5'}">
-                <span class="text-2xl leading-none filter drop-shadow">💰</span>
+              <div class="relative cursor-pointer select-none flex flex-col items-center justify-center transition-all duration-200 ${isSelected ? 'scale-125 -translate-y-1 z-50' : 'hover:scale-120 hover:-translate-y-0.5'}">
+                <div class="w-8 h-8 rounded-full bg-white border-2 border-stone-800 shadow-md flex items-center justify-center p-1">
+                  <span class="text-xs leading-none">💰</span>
+                </div>
                 ${isSelected ? '<span class="w-1.5 h-1.5 rounded-full bg-stone-900 mt-0.5 ring-2 ring-stone-300"></span>' : ''}
               </div>
             `;
@@ -1250,20 +1294,20 @@
             const customIcon = L.divIcon({
               html: iconHtml,
               className: 'custom-job-pin',
-              iconSize: [28, 28],
-              iconAnchor: [14, 24],
-              popupAnchor: [0, -24]
+              iconSize: [32, 32],
+              iconAnchor: [16, 16],
+              popupAnchor: [0, -18]
             });
 
             const marker = L.marker([lat, lng], { icon: customIcon });
 
             marker.bindTooltip(`
-              <div class="px-1 py-0.5">
+              <div class="px-1.5 py-1">
                 <p class="font-semibold text-stone-900 text-xs">${job['Job Title']}</p>
                 <p class="text-stone-500 text-[10px]">${job['Company']}</p>
-                <p class="text-stone-700 text-[10px] mt-0.5 font-medium">📍 ${job.displayLocation}${job.isMultiLocation ? ` (Site ${job.locationIndex}/${job.totalLocations})` : ''}</p>
+                <p class="text-stone-700 text-[10px] mt-0.5 font-medium">📌 ${job.displayLocation}${job.isMultiLocation ? ` (Site ${job.locationIndex}/${job.totalLocations})` : ''}</p>
               </div>
-            `, { direction: 'top', offset: [0, -20], opacity: 0.98, className: 'leaflet-popup-content-wrapper p-2' });
+            `, { direction: 'top', offset: [0, -18], opacity: 0.98, className: 'leaflet-popup-content-wrapper p-2' });
 
             marker.on('click', () => {
               setSelectedCandidateGroup(null);
@@ -1279,49 +1323,59 @@
           });
         }
 
-        // 3b. Plot Candidate City Clusters (when showCandidatesLayer is active)
+        // 3b. Plot Candidates randomly spread based on their location (when showCandidatesLayer is active)
         if (showCandidatesLayer) {
-          candidateCityGroups.forEach(group => {
-            if (!group.coords) return;
-            const isSelectedGroup = selectedCandidateGroup && selectedCandidateGroup.key === group.key;
+          spreadCandidates.forEach(cand => {
+            const plotCoords = cand.spreadCoords || cand.coords;
+            if (!plotCoords) return;
 
-            const candCityIcon = L.divIcon({
+            const isPinned = pinnedCandidateId === cand.id;
+
+            // Unified Executive Pin Design: identical w-8 h-8 white circular badge with border-2 border-stone-800 shadow-md
+            const candIcon = L.divIcon({
               html: `
-                <div class="relative cursor-pointer select-none flex flex-col items-center justify-center transition-all duration-200 ${isSelectedGroup ? 'scale-125 z-50' : 'hover:scale-120 hover:-translate-y-0.5'}">
-                  <div class="relative w-8 h-8 rounded-full bg-white border-2 border-stone-800 shadow-md flex items-center justify-center p-1 candidate-pin-glow">
-                    <img src="./candidate-pin.png" class="w-full h-full object-contain filter drop-shadow-sm" alt="${group.cityName}" />
-                    <span class="absolute -top-1.5 -right-1.5 bg-stone-900 text-white text-[9px] font-bold px-1.5 py-0.2 rounded-full border border-white shadow-md leading-none">
-                      ${group.candidates.length}
-                    </span>
+                <div class="relative cursor-pointer select-none flex flex-col items-center justify-center transition-all duration-200 ${isPinned ? 'scale-125 -translate-y-1 z-50' : 'hover:scale-120 hover:-translate-y-0.5'}">
+                  <div class="w-8 h-8 rounded-full bg-white border-2 border-stone-800 shadow-md flex items-center justify-center p-1.5 candidate-pin-glow">
+                    <img src="./candidate-pin.png" class="w-full h-full object-contain filter drop-shadow-sm" alt="${cand.name}" />
                   </div>
+                  ${isPinned ? '<span class="w-1.5 h-1.5 rounded-full bg-stone-900 mt-0.5 ring-2 ring-stone-300"></span>' : ''}
                 </div>
               `,
               className: 'custom-candidate-city-pin',
               iconSize: [32, 32],
               iconAnchor: [16, 16],
-              popupAnchor: [0, -16]
+              popupAnchor: [0, -18]
             });
 
-            const marker = L.marker(group.coords, { icon: candCityIcon });
+            const marker = L.marker(plotCoords, { icon: candIcon });
 
             marker.bindTooltip(`
               <div class="px-2 py-1 text-center">
-                <p class="font-bold text-stone-900 text-xs">🌿 ${group.cityName}</p>
-                <p class="text-stone-600 text-[10px] font-medium">${group.candidates.length} Candidate${group.candidates.length > 1 ? 's' : ''}</p>
-                <p class="text-stone-400 text-[9px] mt-0.5">Click to view candidate list</p>
+                <p class="font-bold text-stone-900 text-xs">${cand.name}</p>
+                <p class="text-stone-600 text-[10px] font-medium">${cand.title}</p>
+                <p class="text-stone-500 text-[9px] mt-0.5">📌 ${cand.location}</p>
+                ${cand.company ? `<p class="text-stone-400 text-[9px]">🏢 ${cand.company}</p>` : ''}
+                <p class="text-stone-400 text-[9px] mt-1">Click to view candidate details</p>
               </div>
-            `, { direction: 'top', offset: [0, -14], opacity: 0.98, className: 'leaflet-popup-content-wrapper p-2' });
+            `, { direction: 'top', offset: [0, -18], opacity: 0.98, className: 'leaflet-popup-content-wrapper p-2' });
 
             marker.on('click', () => {
               setSelectedJob(null);
-              setSelectedCandidateGroup(group);
+              setPinnedCandidateId(cand.id);
+              setSelectedCandidateGroup({
+                key: cand.location,
+                cityName: cand.location,
+                coords: cand.coords,
+                candidates: cand.cityCandidates || [cand],
+                selectedCandidateId: cand.id
+              });
               if (mapInstanceRef.current) {
-                mapInstanceRef.current.flyTo(group.coords, Math.max(mapInstanceRef.current.getZoom(), 9.5), { duration: 0.8 });
+                mapInstanceRef.current.flyTo(plotCoords, Math.max(mapInstanceRef.current.getZoom(), 10), { duration: 0.8 });
               }
             });
 
             marker.addTo(map);
-            candidateCityMarkersRef.current[group.key] = marker;
+            candidateCityMarkersRef.current[cand.id] = marker;
           });
         }
 
@@ -1331,7 +1385,7 @@
           hasInitiallyFittedRef.current = true;
         }
         map.invalidateSize();
-      }, [processedJobs, candidateCityGroups, selectedJob, selectedCandidateGroup, showJobsLayer, showCandidatesLayer, searchCoords, isAuthenticated]);
+      }, [processedJobs, spreadCandidates, selectedJob, selectedCandidateGroup, pinnedCandidateId, showJobsLayer, showCandidatesLayer, searchCoords, isAuthenticated]);
 
       // 4. Geocode Location Search (Multi-stage fallback for partial & full addresses)
       const handleLocationSearch = async (e) => {
@@ -1731,7 +1785,7 @@
         if (!selectedJob || !selectedJob.coords) return [];
         const [jobLat, jobLng] = selectedJob.coords;
 
-        return candidates
+        return spreadCandidates
           .map(cand => {
             let dist = null;
             if (cand.coords) {
@@ -1768,23 +1822,34 @@
             if (b.distance !== null) return 1;
             return 0;
           });
-      }, [selectedJob, candidates, candidateRadius, filterSimilarTitlesOnly, candidateSearchText, unit]);
+      }, [selectedJob, spreadCandidates, candidateRadius, filterSimilarTitlesOnly, candidateSearchText, unit]);
 
       // Candidates inside the selected candidate city cluster, filtered by city text search
       const filteredCityCandidates = useMemo(() => {
         if (!selectedCandidateGroup) return [];
-        if (!candidateCityFilterText.trim()) return selectedCandidateGroup.candidates;
-        const q = candidateCityFilterText.toLowerCase().trim();
-        return selectedCandidateGroup.candidates.filter(c => {
-          const str = `${c.name} ${c.title} ${c.company} ${c.notes} ${c.industry} ${c.compensationTarget}`.toLowerCase();
-          return str.includes(q);
-        });
+        let list = selectedCandidateGroup.candidates || [];
+        if (candidateCityFilterText.trim()) {
+          const q = candidateCityFilterText.toLowerCase().trim();
+          list = list.filter(c => {
+            const str = `${c.name} ${c.title} ${c.company} ${c.notes} ${c.industry} ${c.compensationTarget}`.toLowerCase();
+            return str.includes(q);
+          });
+        }
+        if (selectedCandidateGroup.selectedCandidateId) {
+          list = [...list].sort((a, b) => {
+            if (a.id === selectedCandidateGroup.selectedCandidateId) return -1;
+            if (b.id === selectedCandidateGroup.selectedCandidateId) return 1;
+            return 0;
+          });
+        }
+        return list;
       }, [selectedCandidateGroup, candidateCityFilterText]);
 
       // Pin a candidate on the map and draw connection line to the current job
       const handlePinCandidateOnMap = (cand) => {
         const map = mapInstanceRef.current;
-        if (!map || !cand.coords) return;
+        const targetCoords = cand.spreadCoords || cand.coords;
+        if (!map || !targetCoords) return;
 
         setPinnedCandidateId(cand.id);
 
@@ -1796,23 +1861,23 @@
         Object.values(candidateMarkersRef.current).forEach(m => map.removeLayer(m));
         candidateMarkersRef.current = {};
 
-        // Place Candidate Marker using candidate-pin.png
+        // Place Candidate Marker using identical size & styling
         const candIcon = L.divIcon({
           html: `
             <div class="relative cursor-pointer select-none flex flex-col items-center justify-center transition-transform hover:scale-110">
-              <div class="w-9 h-9 rounded-full bg-white border-2 border-stone-800 shadow-xl flex items-center justify-center p-1 candidate-pin-glow">
+              <div class="w-8 h-8 rounded-full bg-white border-2 border-stone-800 shadow-xl flex items-center justify-center p-1.5 candidate-pin-glow">
                 <img src="./candidate-pin.png" class="w-full h-full object-contain filter drop-shadow-sm" alt="${cand.name}" />
               </div>
-              <span class="w-2 h-2 rounded-full bg-stone-900 ring-2 ring-white shadow -mt-1"></span>
+              <span class="w-1.5 h-1.5 rounded-full bg-stone-900 mt-0.5 ring-2 ring-white shadow"></span>
             </div>
           `,
           className: 'custom-candidate-pin',
-          iconSize: [36, 36],
-          iconAnchor: [18, 28],
-          popupAnchor: [0, -28]
+          iconSize: [32, 32],
+          iconAnchor: [16, 16],
+          popupAnchor: [0, -18]
         });
 
-        const candMarker = L.marker(cand.coords, { icon: candIcon });
+        const candMarker = L.marker(targetCoords, { icon: candIcon });
         candMarker.bindTooltip(`
           <div class="px-1.5 py-1">
             <p class="font-bold text-stone-900 text-xs">${cand.name}</p>
@@ -1820,14 +1885,14 @@
             <p class="text-stone-500 text-[10px] mt-0.5">📌 ${cand.location}</p>
             ${cand.company ? `<p class="text-stone-400 text-[9px]">${cand.company}</p>` : ''}
           </div>
-        `, { direction: 'top', offset: [0, -24], opacity: 0.98, className: 'leaflet-popup-content-wrapper p-2' });
+        `, { direction: 'top', offset: [0, -18], opacity: 0.98, className: 'leaflet-popup-content-wrapper p-2' });
 
         candMarker.addTo(map);
         candidateMarkersRef.current[cand.id] = candMarker;
 
-        // Draw connecting polyline between job and candidate
+        // Draw connecting polyline between job and candidate spread position
         if (selectedJob && selectedJob.coords) {
-          const line = L.polyline([selectedJob.coords, cand.coords], {
+          const line = L.polyline([selectedJob.coords, targetCoords], {
             color: '#1C1916',
             weight: 2.5,
             dashArray: '6, 8',
@@ -1841,9 +1906,9 @@
           });
           connectionLineRef.current = line;
 
-          map.fitBounds([selectedJob.coords, cand.coords], { padding: [80, 80], maxZoom: 12 });
+          map.fitBounds([selectedJob.coords, targetCoords], { padding: [80, 80], maxZoom: 12 });
         } else {
-          map.setView(cand.coords, 10);
+          map.setView(targetCoords, 10);
         }
       };
 
@@ -2505,10 +2570,10 @@
                         ? 'bg-stone-900 text-white shadow-sm'
                         : 'bg-transparent text-stone-400 hover:text-stone-700'
                     }`}
-                    title="Toggle Candidate City Pins on Map"
+                    title="Toggle Candidate Pins on Map"
                   >
                     <img src="./candidate-pin.png" className={`w-3.5 h-3.5 object-contain ${showCandidatesLayer ? 'invert brightness-200' : ''}`} alt="" />
-                    <span>Candidates ({candidates.length})</span>
+                    <span>Candidates ({spreadCandidates.filter(c => c.spreadCoords).length})</span>
                   </button>
                 </div>
 
@@ -2551,7 +2616,7 @@
                         jobs.filter(j => j.coords).forEach(j => allPoints.push(j.coords));
                       }
                       if (showCandidatesLayer) {
-                        candidateCityGroups.filter(g => g.coords).forEach(g => allPoints.push(g.coords));
+                        spreadCandidates.filter(c => c.spreadCoords).forEach(c => allPoints.push(c.spreadCoords));
                       }
                       if (allPoints.length > 0) {
                         mapInstanceRef.current.fitBounds(allPoints, { padding: [50, 50] });
@@ -3000,11 +3065,17 @@
                         <p className="text-xs text-stone-500">Try clearing the search filter above.</p>
                       </div>
                     ) : (
-                      filteredCityCandidates.map((cand) => (
-                        <div
-                          key={cand.id}
-                          className="p-3.5 rounded-2xl border border-stone-200/80 bg-white hover:border-stone-400 shadow-sm transition space-y-2"
-                        >
+                      filteredCityCandidates.map((cand) => {
+                        const isSelectedFromMap = selectedCandidateGroup && selectedCandidateGroup.selectedCandidateId === cand.id;
+                        return (
+                          <div
+                            key={cand.id}
+                            className={`p-3.5 rounded-2xl border transition space-y-2 ${
+                              isSelectedFromMap
+                                ? 'border-stone-900 bg-stone-50 ring-2 ring-stone-900 shadow-md'
+                                : 'border-stone-200/80 bg-white hover:border-stone-400 shadow-sm'
+                            }`}
+                          >
                           {/* Name & Title */}
                           <div className="flex items-start justify-between gap-2">
                             <div className="flex-1 pr-1">
@@ -3065,8 +3136,8 @@
                               </a>
                             )}
                           </div>
-                        </div>
-                      ))
+                        );
+                      })
                     )}
                   </div>
 
