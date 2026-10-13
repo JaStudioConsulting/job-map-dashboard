@@ -100,6 +100,10 @@
     .custom-tooltip::before {
       border-top-color: #1C1916 !important;
     }
+    .custom-job-pin {
+      background: transparent !important;
+      border: none !important;
+    }
     /* Candidate search pulse animation */
     .candidate-pulse {
       box-shadow: 0 0 0 0 rgba(43, 39, 35, 0.5);
@@ -720,22 +724,20 @@
 
           const isSelected = selectedJob && selectedJob.id === job.id;
 
-          // Elegant Executive Marker (Stone 900 + warm badge)
+          // Pure Emoji Marker (No background circle)
           const iconHtml = `
-            <div class="relative group cursor-pointer transform transition-all duration-200 ${isSelected ? 'scale-125 z-50' : 'hover:scale-110'}">
-              <div class="w-8 h-8 rounded-full ${isSelected ? 'bg-stone-900 ring-4 ring-stone-400 text-white' : 'bg-white border-2 border-stone-800 text-stone-900 shadow-md'} flex items-center justify-center font-bold text-xs">
-                <span class="text-xs">💰</span>
-              </div>
-              <div class="absolute -bottom-1 left-1/2 -translate-x-1/2 w-1.5 h-1.5 ${isSelected ? 'bg-stone-900' : 'bg-stone-800'} rotate-45"></div>
+            <div class="relative cursor-pointer transform transition-all duration-200 select-none flex flex-col items-center justify-center ${isSelected ? 'scale-125 -translate-y-1 z-50' : 'hover:scale-125 hover:-translate-y-0.5'}">
+              <span class="text-2xl leading-none filter drop-shadow">💰</span>
+              ${isSelected ? '<span class="w-1.5 h-1.5 rounded-full bg-stone-900 mt-0.5 ring-2 ring-stone-300"></span>' : ''}
             </div>
           `;
 
           const customIcon = L.divIcon({
             html: iconHtml,
             className: 'custom-job-pin',
-            iconSize: [32, 32],
-            iconAnchor: [16, 32],
-            popupAnchor: [0, -32]
+            iconSize: [28, 28],
+            iconAnchor: [14, 24],
+            popupAnchor: [0, -24]
           });
 
           const marker = L.marker([lat, lng], { icon: customIcon });
@@ -746,7 +748,7 @@
               <p class="text-stone-500 text-[10px]">${job['Company']}</p>
               <p class="text-stone-700 text-[10px] mt-0.5 font-medium">📍 ${job.displayLocation}${job.isMultiLocation ? ` (Site ${job.locationIndex}/${job.totalLocations})` : ''}</p>
             </div>
-          `, { direction: 'top', offset: [0, -28], opacity: 0.98, className: 'leaflet-popup-content-wrapper p-2' });
+          `, { direction: 'top', offset: [0, -20], opacity: 0.98, className: 'leaflet-popup-content-wrapper p-2' });
 
           marker.on('click', () => {
             setSelectedJob(job);
