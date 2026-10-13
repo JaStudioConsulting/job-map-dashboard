@@ -43,7 +43,7 @@ An interactive, single-page web dashboard built for **Top Tier Talent Group** to
    - A generic `Link` remains a profile link unless it is a recognized Gmail or Outlook email URL. Missing or invalid source-email links are shown as unavailable; the app never generates an email URL from a name.
    - The candidate importer accepts the Tracker headers `Candidate Name`, `Current / Most Recent Title`, `Current / Most Recent Company`, `Client Submitted To`, `Submission Date`, `Profile Summary`, `Additional Notes`, and `License & Certifications` alongside existing dashboard headers. The original submission-email links are read from the same workbook, using Ja’s Tracker tab `gid=1403113153`. Candidate identities are matched by full name with current-title/company checks; ambiguous identities are flagged. Multiple source emails are preserved. Tracker data is read-only. If the Candidates tab has no records, actual Tracker rows supply the candidate pool. Failed job refreshes preserve previously loaded records and show an error; sample records are never substituted as live data.
 5. **Copying Candidate Pitches:**
-   - Click **📋 Copy Pitch** on any card or inside the detail drawer.
+   - Click the overlapping-squares **copy icon** on a job or candidate card, beside Role Details, or at the bottom of the job drawer. It changes to a checkmark after a successful copy.
    - Automatically copies a formatted brief to your clipboard ready for candidate calls or emails.
 
 ---

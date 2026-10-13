@@ -115,6 +115,10 @@
     .job-money-marker.is-selected { transform:scale(1.15); }
     .candidate-cluster { background:transparent; border:0; }
     .candidate-cluster span { display:flex; width:42px; height:42px; align-items:center; justify-content:center; border-radius:50%; border:3px solid white; box-sizing:border-box; background:#2563eb; color:white; font-size:14px; font-weight:700; box-shadow:0 0 0 5px #2563eb33,0 2px 6px #0003; }
+    .copy-control { display:inline-flex; align-items:center; justify-content:center; flex-shrink:0; width:32px; height:32px; padding:6px; border:0; border-radius:6px; color:inherit; background:transparent; cursor:pointer; transition:background-color .15s; }
+    .copy-control svg { width:18px; height:18px; }
+    .copy-control:hover { background:rgba(120,113,101,.12); }
+    .copy-control:focus-visible { outline:2px solid #787165; outline-offset:2px; }
     /* Plain Executive iOS Checkbox from Uiverse.io */
     .checkbox-container {
       display: inline-flex;
@@ -317,6 +321,24 @@
 
   <script type="text/babel">
     const { useState, useEffect, useRef, useMemo } = React;
+
+    function CopyButton({ onCopy, copied, label, className = '' }) {
+      const [failed, setFailed] = useState(false);
+      return (
+        <button type="button" aria-label={label} title={failed ? 'Copy failed. Please try again.' : copied ? 'Copied' : label}
+          className={`copy-control ${className}`}
+          onClick={async (event) => {
+            event.stopPropagation();
+            try { await onCopy(); setFailed(false); }
+            catch { setFailed(true); }
+          }}>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            {copied ? <path d="m5 12 4 4 10-10" /> : <><rect x="8" y="8" width="12" height="12" rx="2" /><path d="M16 8V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h3" /></>}
+          </svg>
+          <span className="sr-only" role="status">{failed ? 'Copy failed. Please try again.' : copied ? 'Copied to clipboard' : ''}</span>
+        </button>
+      );
+    }
 
     const PERSON_SVG = '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="12" cy="7" r="4"/><path d="M4 21v-3a8 8 0 0 1 16 0v3z"/></svg>';
     const createCandidateIcon = (isPinned = false) => L.divIcon({
@@ -2002,21 +2024,21 @@
       };
 
       // Copy candidate pitch summary
-      const copyCandidatePitch = (cand) => {
+      const copyCandidatePitch = async (cand) => {
         const lines = [
-          `Candidate: ${escapeHtml(cand.name)}`,
-          `Role: ${escapeHtml(cand.title)}`,
-          `Location: ${escapeHtml(cand.location)}`,
-          cand.company ? `Current Company: ${escapeHtml(cand.company)}` : '',
+          `Candidate: ${cand.name}`,
+          `Role: ${cand.title}`,
+          `Location: ${cand.location}`,
+          cand.company ? `Current Company: ${cand.company}` : '',
           cand.compensationTarget ? `Compensation Target: ${cand.compensationTarget}` : '',
           cand.industry ? `Industry: ${cand.industry}` : '',
           cand.notes ? `Notes / Focus: ${cand.notes}` : '',
-          cand.submissionLink ? `Submission email: ${cand.submissionLink}` : '',
+          ...(cand.submissionEmails?.length ? cand.submissionEmails.map(email => `Submission email${email.client ? ` (${email.client})` : ''}: ${email.url}`) : cand.submissionLink ? [`Submission email: ${cand.submissionLink}`] : []),
           cand.profileLink ? `Profile: ${cand.profileLink}` : ''
         ].filter(Boolean);
 
         const pitch = lines.join('\n');
-        navigator.clipboard.writeText(pitch);
+        await navigator.clipboard.writeText(pitch);
         setCopiedId(cand.id);
         setTimeout(() => setCopiedId(null), 2500);
       };
@@ -2077,12 +2099,12 @@
         }
       }, [selectedJob]);
 
-      const copyJobPitch = (job) => {
+      const copyJobPitch = async (job) => {
         const otherSites = job.isMultiLocation && job.allLocations
           ? ` (Site ${job.locationIndex} of ${job.totalLocations} - Other sites: ${job.allLocations.filter(l => l !== job.displayLocation).join(', ')})`
           : '';
         const text = `📌 Role: ${job['Job Title']}\n🏢 Company: ${job['Company']}\n📍 Location: ${job['displayLocation']}${otherSites}\n💰 Comp: ${job['Compensation'] || 'Competitive'}\n👤 Recruiter: ${job['Owners']}\n\nOverview:\n${job['Job Description']?.slice(0, 350)}...`;
-        navigator.clipboard.writeText(text);
+        await navigator.clipboard.writeText(text);
         setCopiedId(job.id);
         setTimeout(() => setCopiedId(null), 2500);
       };
@@ -2578,15 +2600,7 @@
                           </span>
 
                           <div className="flex items-center gap-2">
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                copyJobPitch(job);
-                              }}
-                              className="text-[11px] bg-stone-100 hover:bg-stone-200 text-stone-800 px-2.5 py-1 rounded-lg border border-stone-200 font-medium transition"
-                            >
-                              {copiedId === job.id ? '✓ Copied' : '📋 Copy Pitch'}
-                            </button>
+                            <CopyButton onCopy={() => copyJobPitch(job)} copied={copiedId === job.id} label="Copy job pitch" />
 
                             <button
                               onClick={(e) => {
@@ -2711,15 +2725,7 @@
                   {/* Drawer Header */}
                   <div className="p-4 border-b border-stone-100 flex items-start justify-between bg-stone-50/50 shrink-0">
                     <div className="flex-1 pr-2">
-                      <div className="flex items-center gap-2">
-                        <span className="text-[10px] font-mono uppercase tracking-wider text-stone-400 font-bold">Job Card</span>
-                        {matchedCandidates.length > 0 && (
-                          <span className="bg-stone-900 text-white text-[10px] px-2 py-0.5 rounded-full font-semibold">
-                            🎯 {matchedCandidates.length} suggestion{matchedCandidates.length !== 1 ? 's' : ''}
-                          </span>
-                        )}
-                      </div>
-                      <h2 className="text-base font-bold text-stone-900 mt-0.5 leading-snug">{selectedJob['Job Title']}</h2>
+                      <h2 className="text-base font-bold text-stone-900 leading-snug">{selectedJob['Job Title']}</h2>
                       <p className="text-xs text-stone-600 font-medium">{selectedJob['Company']}</p>
                     </div>
                     <button
@@ -2750,10 +2756,7 @@
                           : 'border-transparent text-stone-400 hover:text-stone-700'
                       }`}
                     >
-                      <span>🎯 Candidate suggestions</span>
-                      <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold ${drawerTab === 'candidates' ? 'bg-stone-900 text-white' : 'bg-stone-100 text-stone-600'}`}>
-                        {matchedCandidates.length}
-                      </span>
+                      <span>Candidates</span>
                     </button>
                   </div>
 
@@ -2811,12 +2814,7 @@
                         <div>
                           <h4 className="font-semibold text-stone-900 mb-1.5 flex items-center justify-between">
                             <span>Role Details</span>
-                            <button
-                              onClick={() => copyJobPitch(selectedJob)}
-                              className="text-stone-500 hover:text-stone-900 text-[11px] font-normal underline"
-                            >
-                              {copiedId === selectedJob.id ? '✓ Pitch Copied' : 'Copy Pitch'}
-                            </button>
+                            <CopyButton onCopy={() => copyJobPitch(selectedJob)} copied={copiedId === selectedJob.id} label="Copy job details" />
                           </h4>
                           <div className="bg-stone-50 p-3 rounded-2xl border border-stone-200/60 text-stone-700 whitespace-pre-wrap leading-relaxed max-h-56 overflow-y-auto text-[11px]">
                             {selectedJob['Job Description'] || 'No description provided.'}
@@ -2970,14 +2968,8 @@
                                   </button>
 
                                   <div className="flex items-center gap-2">
-                                    <button
-                                      onClick={() => copyCandidatePitch(cand)}
-                                      className={`text-[11px] font-medium transition ${
-                                        isPinned ? 'text-stone-300 hover:text-white' : 'text-stone-500 hover:text-stone-900'
-                                      }`}
-                                    >
-                                      {copiedId === cand.id ? '✓ Pitch Copied' : '📋 Copy'}
-                                    </button>
+                                    <CopyButton onCopy={() => copyCandidatePitch(cand)} copied={copiedId === cand.id} label="Copy candidate summary"
+                                      className={isPinned ? 'text-stone-300' : 'text-stone-500'} />
 
 
                                   </div>
@@ -2992,15 +2984,8 @@
 
                   </div>
 
-                  {/* Drawer Footer Actions */}
-                  <div className="p-3 border-t border-stone-100 bg-stone-50 flex items-center justify-between gap-2 shrink-0">
-                    <button
-                      onClick={() => copyJobPitch(selectedJob)}
-                      className="flex-1 bg-stone-900 hover:bg-stone-800 text-white font-medium py-2.5 rounded-xl text-xs transition shadow-sm flex items-center justify-center gap-1.5"
-                    >
-                      <span>📋</span>
-                      <span>{copiedId === selectedJob.id ? 'Copied to Clipboard!' : 'Copy Job Pitch for Candidate'}</span>
-                    </button>
+                  <div className="px-3 py-2 border-t border-stone-100 flex justify-end shrink-0 text-stone-500">
+                    <CopyButton onCopy={() => copyJobPitch(selectedJob)} copied={copiedId === selectedJob.id} label="Copy job pitch for candidate" />
                   </div>
 
                 </div>
@@ -3134,13 +3119,7 @@
                           <CandidateSubmissionLink candidate={cand} />
                           {/* Action Buttons */}
                           <div className="pt-2 border-t border-stone-100 flex items-center justify-between text-xs">
-                            <button
-                              onClick={() => copyCandidatePitch(cand)}
-                              className="text-[11px] bg-stone-100 hover:bg-stone-200 text-stone-800 px-2.5 py-1 rounded-lg border border-stone-200 font-medium transition flex items-center gap-1"
-                            >
-                              <span>📋</span>
-                              <span>{copiedId === cand.id ? '✓ Pitch Copied' : 'Copy Pitch'}</span>
-                            </button>
+                            <CopyButton onCopy={() => copyCandidatePitch(cand)} copied={copiedId === cand.id} label="Copy candidate summary" />
 
 
                           </div>
