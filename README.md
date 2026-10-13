@@ -125,6 +125,7 @@ The dashboard is built as a self-contained, high-reliability Single-Page Applica
 ```
 job-map-dashboard/
 ├── index.html       # Complete application (HTML + React + Tailwind + Leaflet)
+├── CHANGELOG.md     # Detailed change logs and release notes
 ├── package.json     # Metadata
 ├── README.md        # Comprehensive documentation & data guide
 └── .agents/
