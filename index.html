@@ -206,6 +206,61 @@
         box-shadow: 0 0 0 24px rgba(43, 39, 35, 0);
       }
     }
+    /* Draggable Resizer Handle */
+    .resizer-handle {
+      width: 6px;
+      cursor: col-resize;
+      background: #E8E5DF;
+      transition: background 0.15s ease;
+      position: relative;
+      z-index: 25;
+      flex-shrink: 0;
+    }
+    .resizer-handle:hover,
+    .resizer-handle.resizing {
+      background: #2B2723;
+    }
+    .resizer-handle::after {
+      content: '';
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 2px;
+      height: 24px;
+      border-radius: 2px;
+      background: #A8A194;
+    }
+    .resizer-handle:hover::after,
+    .resizer-handle.resizing::after {
+      background: #FAF9F6;
+    }
+    /* Distance Midpoint Tooltip on Polyline */
+    .distance-midpoint-tooltip {
+      background: #1C1916 !important;
+      color: #FAF9F6 !important;
+      border: 1px solid rgba(255, 255, 255, 0.25) !important;
+      border-radius: 9999px !important;
+      padding: 3px 8px !important;
+      font-size: 10px !important;
+      font-weight: 600 !important;
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.25) !important;
+    }
+    .distance-midpoint-tooltip::before {
+      display: none !important;
+    }
+    /* Candidate Pin & Marker Styling */
+    .custom-candidate-pin {
+      background: transparent;
+      border: none;
+    }
+    .candidate-pin-glow {
+      filter: drop-shadow(0 3px 6px rgba(0, 0, 0, 0.3));
+      transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+    .candidate-pin-glow:hover {
+      transform: scale(1.2) translateY(-2px);
+    }
     /* Custom Smooth Scrollbar */
     .custom-scrollbar {
       scrollbar-width: thin;
@@ -296,6 +351,8 @@
       "detroit, michigan": [42.3314, -83.0458],
       "los angeles, ca": [34.0522, -118.2437],
       "irvine, ca": [33.6846, -117.8265],
+      "huntington beach, ca": [33.6595, -117.9988],
+      "la mirada, ca": [33.9136, -118.0123],
       "san francisco, ca": [37.7749, -122.4194],
       "chicago, il": [41.8781, -87.6298],
       "dallas, tx": [32.7767, -96.7970],
@@ -308,7 +365,31 @@
       "troy, mi": [42.5797, -83.1499],
       "warren, mi": [42.4775, -83.0277],
       "grand rapids, mi": [42.9634, -85.6681],
-      "montreal, qc": [45.5017, -73.5673]
+      "montreal, qc": [45.5017, -73.5673],
+      // Greater Golden Horseshoe & Regional Hubs
+      "greater toronto area, on": [43.6532, -79.3832],
+      "greater toronto area": [43.6532, -79.3832],
+      "gta, on": [43.6532, -79.3832],
+      "etobicoke, on": [43.6205, -79.5132],
+      "scarborough, on": [43.7764, -79.2318],
+      "scarborough, ontario": [43.7764, -79.2318],
+      "stouffville, on": [43.9708, -79.2483],
+      "st. catharines, on": [43.1594, -79.2469],
+      "ancaster, on": [43.2275, -79.9902],
+      "newmarket, on": [44.0592, -79.4613],
+      "smiths falls, on": [44.9029, -76.0206],
+      "kitchener/cambridge, on": [43.4000, -80.4000],
+      "wardsville, on": [42.6568, -81.7547],
+      "sauble beach, on": [44.6833, -81.2667],
+      "newtonville, on": [43.9500, -78.5000],
+      "milton, on": [43.5183, -79.8774],
+      "whitby, on": [43.8975, -78.9429],
+      "ajax, on": [43.8509, -79.0204],
+      "pickering, on": [43.8384, -79.0868],
+      "richmond hill, on": [43.8828, -79.4403],
+      "calgary, ab": [51.0447, -114.0719],
+      "edmonton, ab": [53.5461, -113.4938],
+      "vancouver, bc": [49.2827, -123.1207]
     };
 
     // --- FALLBACK MOCK DATA ---
@@ -374,6 +455,163 @@
         "Job Description": "Electronics Manufacturing Subject Matter Expert\n\nLocation: Belleville, Ontario.\nLead SMT manufacturing process, equipment selection, and commissioning."
       }
     ];
+
+    const MOCK_CANDIDATES = [
+      {
+        name: "Brandon Lesyk",
+        title: "Welder",
+        location: "Oakville, ON",
+        company: "Tank Mart International",
+        industry: "Structural Metal Fabrication / Heavy Hydraulic Equipment",
+        compensationTarget: "Target: Approximately $38–$40/hour | Current: Approximately $36/hour",
+        notes: "Afternoon Shift Production Supervisor",
+        submittedTo: "Berminghammer",
+        submittedOn: "2 Oct 2026"
+      },
+      {
+        name: "Blessing Akujieze",
+        title: "Field Service Coordinator",
+        location: "Greater Toronto Area, ON",
+        company: "Toro Group of Companies",
+        industry: "Manufacturing / Industrial Equipment / IT Infrastructure",
+        compensationTarget: "Target: $85K–$90K | Current: Last role: $85K",
+        notes: "Service Coordinator",
+        submittedTo: "CPM",
+        submittedOn: "2 Oct 2026"
+      },
+      {
+        name: "Milos Bajic",
+        title: "Third-Year Electrical Apprentice (Commercial)",
+        location: "Mississauga, ON",
+        company: "MiPower Solutions Ltd.",
+        industry: "Commercial Electrical Construction",
+        compensationTarget: "Target: $28–$29/hour | Current: $28/hour",
+        notes: "Commercial Electrician",
+        submittedTo: "BFG Enterprise",
+        submittedOn: "2 Oct 2026"
+      },
+      {
+        name: "Rowin Sambath",
+        title: "Supervisor, Bus Facilities and Infrastructure",
+        location: "Brampton, ON",
+        company: "Metrolinx / GO Transit",
+        industry: "Transit Facilities / Food Manufacturing / Industrial Engineering",
+        compensationTarget: "Target: $120,000–$130,000",
+        notes: "Maintenance Manager",
+        submittedTo: "Lumentis",
+        submittedOn: "2 Oct 2026"
+      },
+      {
+        name: "Kasra Mohammadi",
+        title: "Electrician",
+        location: "Greater Toronto Area, ON",
+        company: "A Master Electric Inc.",
+        industry: "Residential / Commercial Electrical Construction",
+        compensationTarget: "Target: $40+/hour days; open to nights at $43/hour",
+        notes: "309A Electrician",
+        submittedOn: "2 Oct 2026"
+      },
+      {
+        name: "Gudeta Duguma",
+        title: "Hydraulic Technician",
+        location: "Toronto, ON",
+        company: "BIK Hydraulics",
+        industry: "Aviation Ground Support Equipment / Hydraulic Equipment Service",
+        compensationTarget: "Target: $35/hour | Current: $32/hour plus bonuses",
+        notes: "Service Technician",
+        submittedTo: "Alamo/Tenco",
+        submittedOn: "1 Oct 2026"
+      },
+      {
+        name: "Mirsad Kotoric",
+        title: "Lead Hand Welding Supervisor / Fitter Welder",
+        location: "Hamilton, ON",
+        company: "Jervis B. Webb Company of Canada Ltd.",
+        industry: "Heavy Steel Fabrication / Material Handling Equipment",
+        compensationTarget: "Target: Approximately $100K | Current: Around $90K",
+        notes: "Afternoon Shift Production Supervisor",
+        submittedTo: "Berminghammer",
+        submittedOn: "1 Oct 2026"
+      },
+      {
+        name: "Dibin Joy",
+        title: "CNC Boring Mill Machinist",
+        location: "Barrie, ON",
+        company: "Bateman Manufacturing",
+        industry: "Large-Part Machining / Construction, Forestry and Scrapyard Equipment",
+        compensationTarget: "Target: $30–$35/hour | Current: Approximately $30/hour",
+        notes: "CNC Machinist",
+        submittedTo: "MPC",
+        submittedOn: "1 Oct 2026"
+      },
+      {
+        name: "Jeff Brown",
+        title: "Mechanic",
+        location: "Windsor, ON",
+        company: "Ford Motor Company",
+        industry: "Automotive / Truck and Coach / Heavy Equipment",
+        compensationTarget: "Target: Above $40/hour; flexible depending on role",
+        notes: "310S/T Licensed",
+        submittedTo: "MPC",
+        submittedOn: "29 Sep 2026"
+      },
+      {
+        name: "Dennis Tam",
+        title: "Maintenance Mechanic",
+        location: "Hamilton, ON",
+        company: "Grissin Bon",
+        industry: "Automotive / Food & Beverage / Continuous-Process Manufacturing",
+        compensationTarget: "Target: Ideally $48/hr",
+        notes: "Maintenance Supervisor/Manager / Automation / Reliability",
+        submittedTo: "MPC",
+        submittedOn: "29 Sep 2026"
+      },
+      {
+        name: "David H. Lee",
+        title: "Accounting Analyst",
+        location: "La Mirada, CA",
+        company: "NewGenesis Healthcare Admin Services",
+        industry: "Healthcare / Software / Venture Environments",
+        notes: "Staff Accountant",
+        submittedTo: "Discount Tire & Service Centers",
+        submittedOn: "2 Oct 2026"
+      },
+      {
+        name: "Qiyuan Qi (James)",
+        title: "Senior Accountant",
+        location: "Irvine, CA",
+        company: "SchoolsFirst Federal Credit Union",
+        industry: "Credit Union / Safety Services",
+        notes: "Staff Accountant",
+        submittedTo: "Discount Tire & Service Centers",
+        submittedOn: "2 Oct 2026"
+      }
+    ];
+
+    // Helper: Smart Title / Keyword Matching for Candidates & Jobs
+    function isSimilarTitle(jobTitle = '', candTitle = '', candNotes = '', candIndustry = '') {
+      const clean = (str) => (str || '').toLowerCase().replace(/[^a-z0-9\s]/g, ' ');
+      const jClean = clean(jobTitle);
+      const cClean = `${clean(candTitle)} ${clean(candNotes)} ${clean(candIndustry)}`;
+
+      const stems = [
+        'weld', 'mold', 'mould', 'machin', 'electric', 'electri', 'mechan', 'technician', 'millwright',
+        'tool', 'die', 'assembl', 'fitter', 'fabricat', 'supervisor', 'manager', 'director',
+        'lead', 'operator', 'engineer', 'quality', 'safety', 'cnc', 'hydraul', 'pneumat',
+        'maintenance', 'service', 'dispatch', 'coordinator', 'purchas', 'buyer', 'procure',
+        'inventory', 'supply chain', 'account', 'sales', 'business develop', 'marketing',
+        'driver', 'truck', 'fleet', 'transit', 'production', 'plant', 'chemist', 'labor'
+      ];
+
+      for (const stem of stems) {
+        if (jClean.includes(stem) && cClean.includes(stem)) {
+          return true;
+        }
+      }
+
+      const jWords = jClean.split(/\s+/).filter(w => w.length >= 4);
+      return jWords.some(w => cClean.includes(w));
+    }
 
     // --- HAVERSINE DISTANCE FORMULA ---
     function calculateDistance(lat1, lon1, lat2, lon2, unit = 'km') {
@@ -608,15 +846,78 @@
       const [activeTab, setActiveTab] = useState('both');
       const [copiedId, setCopiedId] = useState(null);
 
+      // Candidates & Proximity Matching State
+      const [candidates, setCandidates] = useState([]);
+      const [pinnedCandidateId, setPinnedCandidateId] = useState(null);
+      const [candidateRadius, setCandidateRadius] = useState('ALL'); // '25' | '50' | '100' | '250' | 'ALL'
+      const [filterSimilarTitlesOnly, setFilterSimilarTitlesOnly] = useState(false);
+      const [drawerTab, setDrawerTab] = useState('role'); // 'role' | 'candidates'
+      const [candidateSearchText, setCandidateSearchText] = useState('');
+      const [userLocation, setUserLocation] = useState(null);
+
+      // Resizable Sidebar Split Pane State
+      const [sidebarWidth, setSidebarWidth] = useState(() => {
+        const saved = localStorage.getItem('tttg_sidebar_width');
+        return saved ? Math.min(Math.max(parseInt(saved, 10), 260), 650) : 360;
+      });
+      const [isResizing, setIsResizing] = useState(false);
+
+      const startResizing = (e) => {
+        e.preventDefault();
+        setIsResizing(true);
+      };
+
+      useEffect(() => {
+        const handleMouseMove = (e) => {
+          if (!isResizing) return;
+          const newWidth = Math.min(Math.max(e.clientX, 260), Math.min(window.innerWidth * 0.65, 680));
+          setSidebarWidth(newWidth);
+          if (mapInstanceRef.current) {
+            mapInstanceRef.current.invalidateSize();
+          }
+        };
+
+        const handleMouseUp = () => {
+          if (isResizing) {
+            setIsResizing(false);
+            localStorage.setItem('tttg_sidebar_width', sidebarWidth);
+            if (mapInstanceRef.current) {
+              setTimeout(() => mapInstanceRef.current.invalidateSize(), 50);
+            }
+          }
+        };
+
+        if (isResizing) {
+          window.addEventListener('mousemove', handleMouseMove);
+          window.addEventListener('mouseup', handleMouseUp);
+          document.body.style.cursor = 'col-resize';
+          document.body.style.userSelect = 'none';
+        } else {
+          document.body.style.cursor = '';
+          document.body.style.userSelect = '';
+        }
+
+        return () => {
+          window.removeEventListener('mousemove', handleMouseMove);
+          window.removeEventListener('mouseup', handleMouseUp);
+          document.body.style.cursor = '';
+          document.body.style.userSelect = '';
+        };
+      }, [isResizing, sidebarWidth]);
+
       // Map references
       const mapContainerRef = useRef(null);
       const mapInstanceRef = useRef(null);
       const markersRef = useRef({});
+      const candidateMarkersRef = useRef({});
+      const connectionLineRef = useRef(null);
       const searchMarkerRef = useRef(null);
+      const userMarkerRef = useRef(null);
       const radiusCircleRef = useRef(null);
       const hasInitiallyFittedRef = useRef(false);
 
       const CSV_URL = 'https://docs.google.com/spreadsheets/d/1RexJFAEWRwNjzeGThutrA0zMObu2g4r3q0Vu0uiDbQs/gviz/tq?tqx=out:csv&sheet=Jobs';
+      const CANDIDATES_CSV_URL = 'https://docs.google.com/spreadsheets/d/1RexJFAEWRwNjzeGThutrA0zMObu2g4r3q0Vu0uiDbQs/gviz/tq?tqx=out:csv&sheet=Candidates';
 
       // Background exact geocode worker for street-level precision and new locations
       const geocodeExactAddresses = async (jobList) => {
@@ -723,23 +1024,82 @@
         return enriched;
       };
 
-      // 1. Fetch Data
+      // Enrich and normalize candidates
+      const enrichCandidates = (rawRows) => {
+        return rawRows.map((cand, idx) => {
+          const name = (cand['Candidate Name'] || cand['Candidates Candidate Name'] || cand['Name'] || '').trim();
+          const title = (cand['Current Title'] || cand['Title'] || '').trim();
+          const loc = (cand['Location'] || '').trim();
+          const company = (cand['Current Company'] || '').trim();
+          const industry = (cand['Industry'] || '').trim();
+          const compTarget = (cand['Compensation Target'] || '').trim();
+          const compCurrent = (cand['Current Compensation'] || '').trim();
+          const notes = (cand['Notes'] || '').trim();
+          const shift = (cand['Shift'] || '').trim();
+          const submittedTo = (cand['Submitted To'] || '').trim();
+          const submittedOn = (cand['Submitted On'] || '').trim();
+          const link = (cand['Submission Link'] || cand['Link'] || '').trim();
+          const licenses = (cand['Licenses'] || cand['Certifications'] || '').trim();
+
+          const coordData = resolveCoordinates(loc);
+
+          return {
+            id: `cand_${idx}`,
+            name,
+            title,
+            location: loc,
+            company,
+            industry,
+            compensationTarget: compTarget,
+            currentCompensation: compCurrent,
+            notes,
+            shift,
+            submittedTo,
+            submittedOn,
+            submissionLink: link,
+            licenses,
+            coords: coordData ? coordData.latLng : null
+          };
+        }).filter(c => c.name);
+      };
+
+      // 1. Fetch Data (Jobs & Candidates Concurrently)
       const fetchJobs = async () => {
         setLoading(true);
         setError(null);
         try {
           let activeJobs = [];
+          let loadedCandidates = [];
           
+          // A. Fetch Jobs
           try {
             const rawRows = await fetchSheetViaJSONP('1RexJFAEWRwNjzeGThutrA0zMObu2g4r3q0Vu0uiDbQs', 'Jobs');
             activeJobs = rawRows.filter(j => (j['Status'] || '').toLowerCase() === 'active');
           } catch (jsonpErr) {
-            console.warn('JSONP fetch failed, trying standard fetch:', jsonpErr);
+            console.warn('JSONP jobs fetch failed, trying standard CSV fetch:', jsonpErr);
             const res = await fetch(CSV_URL);
             if (!res.ok) throw new Error(`HTTP error ${res.status}`);
             const csvText = await res.text();
             const parsed = parseCSV(csvText);
             activeJobs = parsed.filter(j => (j['Status'] || '').toLowerCase() === 'active');
+          }
+
+          // B. Fetch Candidates
+          try {
+            const rawCand = await fetchSheetViaJSONP('1RexJFAEWRwNjzeGThutrA0zMObu2g4r3q0Vu0uiDbQs', 'Candidates');
+            loadedCandidates = enrichCandidates(rawCand);
+          } catch (candJsonpErr) {
+            console.warn('JSONP candidates fetch failed, trying standard CSV fetch:', candJsonpErr);
+            try {
+              const cRes = await fetch(CANDIDATES_CSV_URL);
+              if (cRes.ok) {
+                const cText = await cRes.text();
+                const cParsed = parseCSV(cText);
+                loadedCandidates = enrichCandidates(cParsed);
+              }
+            } catch (cFetchErr) {
+              console.warn('Candidates CSV fetch fallback:', cFetchErr);
+            }
           }
           
           if (activeJobs.length === 0) {
@@ -748,6 +1108,13 @@
 
           const enriched = expandAndEnrichJobs(activeJobs);
           setJobs(enriched);
+
+          if (loadedCandidates.length > 0) {
+            setCandidates(loadedCandidates);
+          } else {
+            setCandidates(enrichCandidates(MOCK_CANDIDATES));
+          }
+
           setLastUpdated(new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
 
           // Trigger asynchronous background precision geocoder for exact addresses
@@ -756,6 +1123,7 @@
           console.warn('Live fetch error, using mock data:', err.message);
           const enrichedMock = expandAndEnrichJobs(MOCK_JOBS);
           setJobs(enrichedMock);
+          setCandidates(enrichCandidates(MOCK_CANDIDATES));
           setError('Loaded cached records.');
           setLastUpdated(new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
         } finally {
@@ -775,8 +1143,8 @@
 
         if (!mapInstanceRef.current) {
           const map = L.map(mapContainerRef.current, {
-            center: [43.9, -79.8],
-            zoom: 7,
+            center: [43.65, -80.0],
+            zoom: 8.5,
             zoomControl: false,
             preferCanvas: true,
             zoomSnap: 0.25,
@@ -819,7 +1187,7 @@
           }, 250);
           return () => clearTimeout(timer);
         }
-      }, [jobs, searchCoords, activeTab]);
+      }, [jobs, searchCoords, activeTab, sidebarWidth]);
 
       // 3. Update Markers with Warm Executive Pin Design
       useEffect(() => {
@@ -865,7 +1233,7 @@
           `, { direction: 'top', offset: [0, -20], opacity: 0.98, className: 'leaflet-popup-content-wrapper p-2' });
 
           marker.on('click', () => {
-            setSelectedJob(job);
+            handleSelectJob(job);
             const el = document.getElementById(`job-card-${job.id}`);
             if (el) {
               el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
@@ -876,13 +1244,9 @@
           markersRef.current[job.id] = marker;
         });
 
-        // Focus Ontario strictly once on initial load
-        const ontarioBounds = bounds.filter(([lat, lng]) => lat >= 41.5 && lat <= 46.5 && lng >= -84.0 && lng <= -74.0);
-        if (!hasInitiallyFittedRef.current && ontarioBounds.length > 0 && !searchCoords && !selectedJob) {
-          map.fitBounds(ontarioBounds, { padding: [50, 50], maxZoom: 8 });
-          hasInitiallyFittedRef.current = true;
-        } else if (!hasInitiallyFittedRef.current && !searchCoords && !selectedJob) {
-          map.setView([43.9, -79.8], 7);
+        // Focus Southern Ontario comfortably once on initial load (avoids clumping)
+        if (!hasInitiallyFittedRef.current && !searchCoords && !selectedJob) {
+          map.setView([43.65, -80.0], 8.5);
           hasInitiallyFittedRef.current = true;
         }
         map.invalidateSize();
@@ -1255,6 +1619,17 @@
 
       const handleSelectJob = (job) => {
         setSelectedJob(job);
+        setPinnedCandidateId(null);
+        setDrawerTab('role');
+        if (connectionLineRef.current && mapInstanceRef.current) {
+          mapInstanceRef.current.removeLayer(connectionLineRef.current);
+          connectionLineRef.current = null;
+        }
+        if (mapInstanceRef.current) {
+          Object.values(candidateMarkersRef.current).forEach(m => mapInstanceRef.current.removeLayer(m));
+          candidateMarkersRef.current = {};
+        }
+
         if (job.coords && mapInstanceRef.current) {
           const currentZoom = mapInstanceRef.current.getZoom();
           // Keep view wide enough (max zoom 9 instead of 11) so nearby pins don't disappear off-screen
@@ -1266,6 +1641,187 @@
           }
         }
       };
+
+      // Matched candidates for the selected job, ranked by distance to this job
+      const matchedCandidates = useMemo(() => {
+        if (!selectedJob || !selectedJob.coords) return [];
+        const [jobLat, jobLng] = selectedJob.coords;
+
+        return candidates
+          .map(cand => {
+            let dist = null;
+            if (cand.coords) {
+              dist = calculateDistance(jobLat, jobLng, cand.coords[0], cand.coords[1], unit);
+            }
+            const isMatch = isSimilarTitle(selectedJob['Job Title'], cand.title, cand.notes, cand.industry);
+            return {
+              ...cand,
+              distance: dist,
+              isTitleMatch: isMatch
+            };
+          })
+          .filter(cand => {
+            // Radius filter
+            if (candidateRadius !== 'ALL') {
+              const maxR = parseFloat(candidateRadius);
+              if (cand.distance === null || cand.distance > maxR) return false;
+            }
+            // Title filter
+            if (filterSimilarTitlesOnly && !cand.isTitleMatch) {
+              return false;
+            }
+            // Search text filter
+            if (candidateSearchText.trim()) {
+              const q = candidateSearchText.toLowerCase().trim();
+              const fullText = `${cand.name} ${cand.title} ${cand.location} ${cand.company} ${cand.notes} ${cand.industry}`.toLowerCase();
+              if (!fullText.includes(q)) return false;
+            }
+            return true;
+          })
+          .sort((a, b) => {
+            if (a.distance !== null && b.distance !== null) return a.distance - b.distance;
+            if (a.distance !== null) return -1;
+            if (b.distance !== null) return 1;
+            return 0;
+          });
+      }, [selectedJob, candidates, candidateRadius, filterSimilarTitlesOnly, candidateSearchText, unit]);
+
+      // Pin a candidate on the map and draw connection line to the current job
+      const handlePinCandidateOnMap = (cand) => {
+        const map = mapInstanceRef.current;
+        if (!map || !cand.coords) return;
+
+        setPinnedCandidateId(cand.id);
+
+        // Remove previous polyline and candidate markers
+        if (connectionLineRef.current) {
+          map.removeLayer(connectionLineRef.current);
+          connectionLineRef.current = null;
+        }
+        Object.values(candidateMarkersRef.current).forEach(m => map.removeLayer(m));
+        candidateMarkersRef.current = {};
+
+        // Place Candidate Marker using candidate-pin.png
+        const candIcon = L.divIcon({
+          html: `
+            <div class="relative cursor-pointer select-none flex flex-col items-center justify-center candidate-pin-glow">
+              <img src="./candidate-pin.png" class="w-9 h-9 object-contain filter drop-shadow-lg" alt="${cand.name}" />
+              <span class="w-2 h-2 rounded-full bg-emerald-600 ring-2 ring-white shadow -mt-1"></span>
+            </div>
+          `,
+          className: 'custom-candidate-pin',
+          iconSize: [36, 36],
+          iconAnchor: [18, 28],
+          popupAnchor: [0, -28]
+        });
+
+        const candMarker = L.marker(cand.coords, { icon: candIcon });
+        candMarker.bindTooltip(`
+          <div class="px-1.5 py-1">
+            <p class="font-bold text-stone-900 text-xs">${cand.name}</p>
+            <p class="text-stone-600 text-[11px] font-medium">${cand.title}</p>
+            <p class="text-stone-500 text-[10px] mt-0.5">📍 ${cand.location} ${cand.distance !== null ? `(${cand.distance} ${unit} away)` : ''}</p>
+            ${cand.company ? `<p class="text-stone-400 text-[9px]">${cand.company}</p>` : ''}
+          </div>
+        `, { direction: 'top', offset: [0, -24], opacity: 0.98, className: 'leaflet-popup-content-wrapper p-2' });
+
+        candMarker.addTo(map);
+        candidateMarkersRef.current[cand.id] = candMarker;
+
+        // Draw connecting polyline between job and candidate
+        if (selectedJob && selectedJob.coords) {
+          const line = L.polyline([selectedJob.coords, cand.coords], {
+            color: '#1C1916',
+            weight: 2.5,
+            dashArray: '6, 8',
+            opacity: 0.85
+          }).addTo(map);
+
+          if (cand.distance !== null) {
+            line.bindTooltip(`↔️ ${cand.distance} ${unit}`, {
+              permanent: true,
+              direction: 'center',
+              className: 'distance-midpoint-tooltip'
+            });
+          }
+          connectionLineRef.current = line;
+
+          map.fitBounds([selectedJob.coords, cand.coords], { padding: [80, 80], maxZoom: 12 });
+        } else {
+          map.setView(cand.coords, 10);
+        }
+      };
+
+      // Copy candidate pitch summary
+      const copyCandidatePitch = (cand) => {
+        const lines = [
+          `Candidate: ${cand.name}`,
+          `Role: ${cand.title}`,
+          `Location: ${cand.location}${cand.distance !== null && selectedJob ? ` (${cand.distance} ${unit} from ${selectedJob['Job Title']})` : ''}`,
+          cand.company ? `Current Company: ${cand.company}` : '',
+          cand.compensationTarget ? `Compensation Target: ${cand.compensationTarget}` : '',
+          cand.industry ? `Industry: ${cand.industry}` : '',
+          cand.notes ? `Notes / Focus: ${cand.notes}` : '',
+          cand.submissionLink ? `Profile Link: ${cand.submissionLink}` : ''
+        ].filter(Boolean);
+
+        const pitch = lines.join('\n');
+        navigator.clipboard.writeText(pitch);
+        setCopiedId(cand.id);
+        setTimeout(() => setCopiedId(null), 2500);
+      };
+
+      // Geolocation handler for "📍 My Location"
+      const handleFocusMyLocation = () => {
+        if (!navigator.geolocation) {
+          setSearchError('Geolocation is not supported by your browser.');
+          return;
+        }
+        navigator.geolocation.getCurrentPosition(
+          (pos) => {
+            const coords = [pos.coords.latitude, pos.coords.longitude];
+            setUserLocation(coords);
+            if (mapInstanceRef.current) {
+              mapInstanceRef.current.setView(coords, 10, { animate: true });
+              if (userMarkerRef.current) {
+                mapInstanceRef.current.removeLayer(userMarkerRef.current);
+              }
+              const userIcon = L.divIcon({
+                html: `
+                  <div class="relative flex items-center justify-center">
+                    <div class="w-4 h-4 rounded-full bg-blue-600 border-2 border-white shadow-lg candidate-pulse"></div>
+                  </div>
+                `,
+                className: 'user-location-pin',
+                iconSize: [20, 20],
+                iconAnchor: [10, 10]
+              });
+              userMarkerRef.current = L.marker(coords, { icon: userIcon })
+                .bindTooltip('📍 Your Current Location', { direction: 'top', offset: [0, -10] })
+                .addTo(mapInstanceRef.current);
+            }
+          },
+          (err) => {
+            console.warn('Geolocation lookup notice:', err);
+            setSearchError('Could not retrieve your current location. Please check browser permissions.');
+          },
+          { enableHighAccuracy: true, timeout: 8000 }
+        );
+      };
+
+      // Clear candidate pins and connection line when selectedJob is closed
+      useEffect(() => {
+        if (!selectedJob && mapInstanceRef.current) {
+          if (connectionLineRef.current) {
+            mapInstanceRef.current.removeLayer(connectionLineRef.current);
+            connectionLineRef.current = null;
+          }
+          Object.values(candidateMarkersRef.current).forEach(m => mapInstanceRef.current.removeLayer(m));
+          candidateMarkersRef.current = {};
+          setPinnedCandidateId(null);
+          setDrawerTab('role');
+        }
+      }, [selectedJob]);
 
       const copyJobPitch = (job) => {
         const otherSites = job.isMultiLocation && job.allLocations 
@@ -1670,7 +2226,10 @@
           <div className="flex-1 flex overflow-hidden relative">
 
             {/* SIDEBAR: RANKED JOB CARDS LIST */}
-            <div className={`w-full lg:w-[460px] xl:w-[490px] border-r border-stone-200 bg-[#FAF9F6] flex flex-col shrink-0 overflow-hidden ${activeTab === 'map' ? 'hidden lg:flex' : 'flex'}`}>
+            <div
+              style={{ width: activeTab === 'map' ? undefined : (window.innerWidth >= 1024 ? `${sidebarWidth}px` : '100%') }}
+              className={`border-r border-stone-200 bg-[#FAF9F6] flex flex-col shrink-0 overflow-hidden ${activeTab === 'map' ? 'hidden lg:flex' : 'flex'}`}
+            >
               
               {/* List Header */}
               <div className="p-3 bg-white border-b border-stone-200 flex items-center justify-between text-xs text-stone-500">
@@ -1683,7 +2242,7 @@
                 {loading ? (
                   <div className="py-20 text-center text-stone-400 space-y-3">
                     <div className="w-7 h-7 border-2 border-stone-800 border-t-transparent rounded-full animate-spin mx-auto"></div>
-                    <p className="text-xs">Fetching active jobs from Google Sheets...</p>
+                    <p className="text-xs">Fetching active jobs & candidates from Google Sheets...</p>
                   </div>
                 ) : processedJobs.length === 0 ? (
                   <div className="py-20 text-center text-stone-400 space-y-2">
@@ -1726,7 +2285,7 @@
                           )}
                         </div>
 
-                        {/* Location & Proximity Distance (Single clean line) */}
+                        {/* Location & Proximity Distance */}
                         <div className="mt-2.5 flex flex-wrap items-center gap-2 text-xs text-stone-600">
                           <div className="flex items-center gap-1">
                             <span>📌</span>
@@ -1764,7 +2323,7 @@
                             <button
                               onClick={(e) => {
                                 e.stopPropagation();
-                                setSelectedJob(job);
+                                handleSelectJob(job);
                               }}
                               className="text-[11px] text-stone-900 font-semibold hover:underline"
                             >
@@ -1780,29 +2339,39 @@
               </div>
             </div>
 
+            {/* DRAGGABLE RESIZER HANDLE */}
+            <div
+              onMouseDown={startResizing}
+              className={`hidden lg:flex resizer-handle ${isResizing ? 'resizing' : ''}`}
+              title="Drag to resize job list and map"
+            />
+
             {/* INTERACTIVE MAP */}
             <div className={`flex-1 relative h-full bg-stone-100 ${activeTab === 'list' ? 'hidden lg:block' : 'block'}`}>
               <div ref={mapContainerRef} id="map-viewport" className="w-full h-full z-10" />
 
               {/* Map Floating Buttons */}
-              <div className="absolute top-4 right-4 z-20 flex items-center gap-2">
+              <div className="absolute top-4 right-4 z-20 flex flex-wrap items-center gap-2">
                 <button
                   onClick={() => {
-                    if (mapInstanceRef.current && jobs.length > 0) {
-                      const ontarioCoords = jobs
-                        .filter(j => j.coords && j.coords[0] >= 41.5 && j.coords[0] <= 46.5 && j.coords[1] >= -84.0 && j.coords[1] <= -74.0)
-                        .map(j => j.coords);
-                      if (ontarioCoords.length > 0) {
-                        mapInstanceRef.current.fitBounds(ontarioCoords, { padding: [50, 50], maxZoom: 8 });
-                      } else {
-                        mapInstanceRef.current.setView([43.9, -79.8], 7);
-                      }
+                    if (mapInstanceRef.current) {
+                      mapInstanceRef.current.setView([43.65, -80.0], 8.5, { animate: true });
                     }
                   }}
                   className="bg-white hover:bg-stone-50 text-stone-900 text-xs px-3 py-2 rounded-xl border border-stone-200 shadow-md font-medium transition flex items-center gap-1.5"
+                  title="Focus Southern Ontario & Greater Golden Horseshoe"
                 >
                   <span>🍁</span> Focus Ontario
                 </button>
+
+                <button
+                  onClick={handleFocusMyLocation}
+                  className="bg-white hover:bg-stone-50 text-stone-900 text-xs px-3 py-2 rounded-xl border border-stone-200 shadow-md font-medium transition flex items-center gap-1.5"
+                  title="Center map on your current location"
+                >
+                  <span>📍</span> My Location
+                </button>
+
                 <button
                   onClick={() => {
                     if (mapInstanceRef.current && jobs.length > 0) {
@@ -1813,20 +2382,28 @@
                     }
                   }}
                   className="bg-white hover:bg-stone-50 text-stone-900 text-xs px-3 py-2 rounded-xl border border-stone-200 shadow-md font-medium transition flex items-center gap-1.5"
+                  title="Fit all job markers in view"
                 >
                   <span>🌐</span> All Pins
                 </button>
               </div>
 
-              {/* SLIDE-OUT DETAIL DRAWER */}
+              {/* SLIDE-OUT DETAIL DRAWER (ROLES & CANDIDATE MATCHING) */}
               {selectedJob && (
-                <div className="absolute top-4 left-4 right-4 sm:right-auto sm:w-96 max-h-[85%] bg-white/95 border border-stone-200 rounded-3xl shadow-2xl backdrop-blur z-30 flex flex-col overflow-hidden animate-in fade-in duration-150">
+                <div className="absolute top-4 left-4 right-4 sm:right-auto sm:w-[460px] max-h-[88%] bg-white/95 border border-stone-200 rounded-3xl shadow-2xl backdrop-blur z-30 flex flex-col overflow-hidden animate-in fade-in duration-150">
                   
                   {/* Drawer Header */}
-                  <div className="p-4 border-b border-stone-100 flex items-start justify-between bg-stone-50/50">
-                    <div>
-                      <span className="text-[10px] font-mono uppercase tracking-wider text-stone-400 font-bold">Job Card</span>
-                      <h2 className="text-base font-bold text-stone-900 mt-0.5">{selectedJob['Job Title']}</h2>
+                  <div className="p-4 border-b border-stone-100 flex items-start justify-between bg-stone-50/50 shrink-0">
+                    <div className="flex-1 pr-2">
+                      <div className="flex items-center gap-2">
+                        <span className="text-[10px] font-mono uppercase tracking-wider text-stone-400 font-bold">Job Card</span>
+                        {matchedCandidates.length > 0 && (
+                          <span className="bg-stone-900 text-white text-[10px] px-2 py-0.5 rounded-full font-semibold">
+                            🎯 {matchedCandidates.length} in Area
+                          </span>
+                        )}
+                      </div>
+                      <h2 className="text-base font-bold text-stone-900 mt-0.5 leading-snug">{selectedJob['Job Title']}</h2>
                       <p className="text-xs text-stone-600 font-medium">{selectedJob['Company']}</p>
                     </div>
                     <button
@@ -1837,72 +2414,312 @@
                     </button>
                   </div>
 
+                  {/* Drawer Tab Switcher */}
+                  <div className="flex border-b border-stone-200 bg-white px-4 pt-2 gap-3 shrink-0 text-xs">
+                    <button
+                      onClick={() => setDrawerTab('role')}
+                      className={`pb-2.5 font-semibold transition border-b-2 flex items-center gap-1.5 ${
+                        drawerTab === 'role'
+                          ? 'border-stone-900 text-stone-900'
+                          : 'border-transparent text-stone-400 hover:text-stone-700'
+                      }`}
+                    >
+                      <span>💼 Role Details</span>
+                    </button>
+                    <button
+                      onClick={() => setDrawerTab('candidates')}
+                      className={`pb-2.5 font-semibold transition border-b-2 flex items-center gap-1.5 ${
+                        drawerTab === 'candidates'
+                          ? 'border-stone-900 text-stone-900'
+                          : 'border-transparent text-stone-400 hover:text-stone-700'
+                      }`}
+                    >
+                      <span>🎯 Candidates in Area</span>
+                      <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold ${drawerTab === 'candidates' ? 'bg-stone-900 text-white' : 'bg-stone-100 text-stone-600'}`}>
+                        {matchedCandidates.length}
+                      </span>
+                    </button>
+                  </div>
+
                   {/* Drawer Content */}
-                  <div className="p-4 overflow-y-auto space-y-3.5 text-xs text-stone-700 flex-1">
+                  <div className="p-4 overflow-y-auto space-y-3.5 text-xs text-stone-700 flex-1 custom-scrollbar">
                     
-                    {/* Key Specs */}
-                    <div className="grid grid-cols-2 gap-2 bg-stone-50 p-3 rounded-2xl border border-stone-200/70">
-                      <div>
-                        <span className="text-stone-400 text-[10px] block">Location</span>
-                        <span className="font-semibold text-stone-900">{selectedJob.displayLocation}</span>
-                        {selectedJob.isMultiLocation && (
-                          <span className="block text-[10px] text-stone-500 font-normal">
-                            Site {selectedJob.locationIndex} of {selectedJob.totalLocations}
+                    {drawerTab === 'role' ? (
+                      <>
+                        {/* Key Specs */}
+                        <div className="grid grid-cols-2 gap-2 bg-stone-50 p-3 rounded-2xl border border-stone-200/70">
+                          <div>
+                            <span className="text-stone-400 text-[10px] block">Location</span>
+                            <span className="font-semibold text-stone-900">{selectedJob.displayLocation}</span>
+                            {selectedJob.isMultiLocation && (
+                              <span className="block text-[10px] text-stone-500 font-normal">
+                                Site {selectedJob.locationIndex} of {selectedJob.totalLocations}
+                              </span>
+                            )}
+                          </div>
+                          <div>
+                            <span className="text-stone-400 text-[10px] block">Compensation</span>
+                            <span className="font-semibold text-emerald-800">{selectedJob['Compensation'] || 'Not listed'}</span>
+                          </div>
+                          <div>
+                            <span className="text-stone-400 text-[10px] block">Job ID</span>
+                            <span className="font-mono text-stone-700">{selectedJob['Job ID']}</span>
+                          </div>
+                          <div>
+                            <span className="text-stone-400 text-[10px] block">Owner(s)</span>
+                            <span className="font-medium text-stone-900">{selectedJob['Owners'] || 'N/A'}</span>
+                          </div>
+                          {selectedJob.isMultiLocation && selectedJob.allLocations && (
+                            <div className="col-span-2 pt-1 border-t border-stone-200/50">
+                              <span className="text-stone-400 text-[10px] block">All Opening Locations ({selectedJob.totalLocations})</span>
+                              <span className="text-stone-800 font-medium text-[11px]">{selectedJob.allLocations.join(' • ')}</span>
+                            </div>
+                          )}
+                          {selectedJob['Client Contact'] && (
+                            <div className="col-span-2 pt-1 border-t border-stone-200/50">
+                              <span className="text-stone-400 text-[10px] block">Client Contact</span>
+                              <span className="text-stone-800 font-medium">{selectedJob['Client Contact']}</span>
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Jump to Candidates Button Callout */}
+                        <button
+                          onClick={() => setDrawerTab('candidates')}
+                          className="w-full bg-stone-900 hover:bg-stone-800 text-white p-2.5 rounded-xl font-medium text-xs flex items-center justify-between transition shadow-sm"
+                        >
+                          <span className="flex items-center gap-1.5">
+                            <span>🎯</span>
+                            <span>View {matchedCandidates.length} Matched Candidates in this Area</span>
                           </span>
+                          <span>&rarr;</span>
+                        </button>
+
+                        {/* Job Description */}
+                        <div>
+                          <h4 className="font-semibold text-stone-900 mb-1.5 flex items-center justify-between">
+                            <span>Role Details</span>
+                            <button
+                              onClick={() => copyJobPitch(selectedJob)}
+                              className="text-stone-500 hover:text-stone-900 text-[11px] font-normal underline"
+                            >
+                              {copiedId === selectedJob.id ? '✓ Pitch Copied' : 'Copy Pitch'}
+                            </button>
+                          </h4>
+                          <div className="bg-stone-50 p-3 rounded-2xl border border-stone-200/60 text-stone-700 whitespace-pre-wrap leading-relaxed max-h-56 overflow-y-auto text-[11px]">
+                            {selectedJob['Job Description'] || 'No description provided.'}
+                          </div>
+                        </div>
+                      </>
+                    ) : (
+                      /* CANDIDATES IN AREA TAB */
+                      <div className="space-y-3">
+                        {/* Candidate Filter Bar */}
+                        <div className="bg-stone-50 p-3 rounded-2xl border border-stone-200/80 space-y-2">
+                          <div className="flex flex-wrap items-center justify-between gap-2">
+                            {/* Radius selector */}
+                            <div className="flex items-center gap-1.5">
+                              <span className="text-stone-500 text-[11px] font-medium">Radius:</span>
+                              <select
+                                value={candidateRadius}
+                                onChange={(e) => setCandidateRadius(e.target.value)}
+                                className="bg-white border border-stone-200 text-stone-900 font-semibold text-xs rounded-lg px-2 py-1 focus:outline-none cursor-pointer shadow-sm"
+                              >
+                                <option value="ALL">Any Distance</option>
+                                <option value="25">Within 25 {unit}</option>
+                                <option value="50">Within 50 {unit}</option>
+                                <option value="100">Within 100 {unit}</option>
+                                <option value="250">Within 250 {unit}</option>
+                              </select>
+                            </div>
+
+                            {/* Title match toggle */}
+                            <label className="flex items-center gap-1.5 text-[11px] text-stone-700 font-medium cursor-pointer select-none">
+                              <input
+                                type="checkbox"
+                                checked={filterSimilarTitlesOnly}
+                                onChange={(e) => setFilterSimilarTitlesOnly(e.target.checked)}
+                                className="rounded text-stone-900 focus:ring-0 cursor-pointer"
+                              />
+                              <span>Similar Roles Only</span>
+                            </label>
+                          </div>
+
+                          {/* Quick Candidate Filter Input */}
+                          <div className="relative">
+                            <input
+                              type="text"
+                              placeholder="Filter candidates by name, skill, or notes..."
+                              value={candidateSearchText}
+                              onChange={(e) => setCandidateSearchText(e.target.value)}
+                              className="w-full pl-7 pr-3 py-1.5 bg-white border border-stone-200 rounded-lg text-xs placeholder-stone-400 focus:outline-none focus:border-stone-800"
+                            />
+                            <span className="absolute left-2.5 top-2 text-[10px] text-stone-400">🔍</span>
+                            {candidateSearchText && (
+                              <button
+                                onClick={() => setCandidateSearchText('')}
+                                className="absolute right-2 top-1.5 text-xs text-stone-400 hover:text-stone-700"
+                              >
+                                ✕
+                              </button>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Candidate Cards List */}
+                        {matchedCandidates.length === 0 ? (
+                          <div className="py-12 text-center text-stone-400 space-y-2">
+                            <p className="text-2xl">🎯</p>
+                            <p className="text-sm font-semibold text-stone-800">No candidates match these criteria</p>
+                            <p className="text-xs text-stone-500">
+                              Try expanding the radius to "Any Distance" or unchecking "Similar Roles Only".
+                            </p>
+                          </div>
+                        ) : (
+                          matchedCandidates.map((cand) => {
+                            const isPinned = pinnedCandidateId === cand.id;
+                            return (
+                              <div
+                                key={cand.id}
+                                className={`p-3.5 rounded-2xl border transition-all ${
+                                  isPinned
+                                    ? 'bg-stone-900 text-white border-stone-900 shadow-md ring-1 ring-stone-900'
+                                    : 'bg-white hover:border-stone-400 border-stone-200/80 shadow-sm'
+                                }`}
+                              >
+                                {/* Top: Name & Badges */}
+                                <div className="flex items-start justify-between gap-2">
+                                  <div className="flex-1 pr-1">
+                                    <h5 className={`font-bold text-xs ${isPinned ? 'text-white' : 'text-stone-900'}`}>
+                                      {cand.name}
+                                    </h5>
+                                    <p className={`text-[11px] font-semibold mt-0.5 ${isPinned ? 'text-stone-200' : 'text-stone-700'}`}>
+                                      {cand.title}
+                                    </p>
+                                  </div>
+
+                                  <div className="flex flex-col items-end gap-1 shrink-0">
+                                    {cand.distance !== null && (
+                                      <span className={`text-[10px] px-2 py-0.5 rounded-full font-semibold ${
+                                        isPinned ? 'bg-white/20 text-white' : 'bg-stone-100 text-stone-800 border border-stone-200'
+                                      }`}>
+                                        📍 {cand.distance} {unit} away
+                                      </span>
+                                    )}
+                                    {cand.isTitleMatch && (
+                                      <span className="text-[9px] bg-emerald-100 border border-emerald-300 text-emerald-800 px-1.5 py-0.2 rounded font-semibold">
+                                        🎯 Role Match
+                                      </span>
+                                    )}
+                                  </div>
+                                </div>
+
+                                {/* Zero-Clutter Details: ONLY render non-empty fields */}
+                                <div className="mt-2 space-y-1 text-[11px]">
+                                  <div className={`flex items-center gap-1 ${isPinned ? 'text-stone-300' : 'text-stone-600'}`}>
+                                    <span>📌</span>
+                                    <span className="font-medium">{cand.location}</span>
+                                  </div>
+
+                                  {cand.company && (
+                                    <p className={isPinned ? 'text-stone-300' : 'text-stone-600'}>
+                                      🏢 Company: <span className="font-medium">{cand.company}</span>
+                                    </p>
+                                  )}
+
+                                  {cand.compensationTarget && (
+                                    <div className="pt-0.5">
+                                      <span className={`inline-block px-2 py-0.5 rounded-md text-[10px] font-semibold ${
+                                        isPinned ? 'bg-emerald-800/80 text-emerald-200 border border-emerald-600' : 'bg-emerald-50 text-emerald-800 border border-emerald-200'
+                                      }`}>
+                                        💰 {cand.compensationTarget}
+                                      </span>
+                                    </div>
+                                  )}
+
+                                  {cand.industry && (
+                                    <p className={isPinned ? 'text-stone-300' : 'text-stone-600'}>
+                                      🏭 Industry: <span className="font-normal">{cand.industry}</span>
+                                    </p>
+                                  )}
+
+                                  {cand.notes && (
+                                    <div className={`p-2 rounded-xl text-[10px] mt-1.5 leading-relaxed ${
+                                      isPinned ? 'bg-white/10 text-stone-200' : 'bg-stone-50 border border-stone-200/60 text-stone-600'
+                                    }`}>
+                                      <b>Target/Notes:</b> {cand.notes}
+                                    </div>
+                                  )}
+
+                                  {cand.shift && (
+                                    <p className={`text-[10px] ${isPinned ? 'text-stone-300' : 'text-stone-500'}`}>
+                                      ⏱️ Shift: {cand.shift}
+                                    </p>
+                                  )}
+
+                                  {cand.submittedTo && (
+                                    <p className={`text-[10px] ${isPinned ? 'text-stone-300' : 'text-stone-500'}`}>
+                                      👤 Client Track: {cand.submittedTo} {cand.submittedOn ? `(${cand.submittedOn})` : ''}
+                                    </p>
+                                  )}
+                                </div>
+
+                                {/* Actions Row */}
+                                <div className={`mt-2.5 pt-2 border-t flex items-center justify-between text-xs ${
+                                  isPinned ? 'border-white/15' : 'border-stone-100'
+                                }`}>
+                                  <button
+                                    onClick={() => handlePinCandidateOnMap(cand)}
+                                    className={`px-2.5 py-1 rounded-lg font-medium text-[11px] transition flex items-center gap-1 ${
+                                      isPinned
+                                        ? 'bg-white text-stone-900 shadow-sm'
+                                        : 'bg-stone-100 hover:bg-stone-200 text-stone-800 border border-stone-200'
+                                    }`}
+                                  >
+                                    <span>📍</span>
+                                    <span>{isPinned ? 'Pinned on Map' : 'Pin on Map'}</span>
+                                  </button>
+
+                                  <div className="flex items-center gap-2">
+                                    <button
+                                      onClick={() => copyCandidatePitch(cand)}
+                                      className={`text-[11px] font-medium transition ${
+                                        isPinned ? 'text-stone-300 hover:text-white' : 'text-stone-500 hover:text-stone-900'
+                                      }`}
+                                    >
+                                      {copiedId === cand.id ? '✓ Pitch Copied' : '📋 Copy'}
+                                    </button>
+
+                                    {cand.submissionLink && (
+                                      <a
+                                        href={cand.submissionLink}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="text-[11px] font-semibold text-blue-500 hover:underline"
+                                      >
+                                        Profile &rarr;
+                                      </a>
+                                    )}
+                                  </div>
+                                </div>
+
+                              </div>
+                            );
+                          })
                         )}
                       </div>
-                      <div>
-                        <span className="text-stone-400 text-[10px] block">Compensation</span>
-                        <span className="font-semibold text-emerald-800">{selectedJob['Compensation'] || 'Not listed'}</span>
-                      </div>
-                      <div>
-                        <span className="text-stone-400 text-[10px] block">Job ID</span>
-                        <span className="font-mono text-stone-700">{selectedJob['Job ID']}</span>
-                      </div>
-                      <div>
-                        <span className="text-stone-400 text-[10px] block">Owner(s)</span>
-                        <span className="font-medium text-stone-900">{selectedJob['Owners'] || 'N/A'}</span>
-                      </div>
-                      {selectedJob.isMultiLocation && selectedJob.allLocations && (
-                        <div className="col-span-2 pt-1 border-t border-stone-200/50">
-                          <span className="text-stone-400 text-[10px] block">All Opening Locations ({selectedJob.totalLocations})</span>
-                          <span className="text-stone-800 font-medium text-[11px]">{selectedJob.allLocations.join(' • ')}</span>
-                        </div>
-                      )}
-                      {selectedJob['Client Contact'] && (
-                        <div className="col-span-2 pt-1 border-t border-stone-200/50">
-                          <span className="text-stone-400 text-[10px] block">Client Contact</span>
-                          <span className="text-stone-800 font-medium">{selectedJob['Client Contact']}</span>
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Job Description */}
-                    <div>
-                      <h4 className="font-semibold text-stone-900 mb-1.5 flex items-center justify-between">
-                        <span>Role Details</span>
-                        <button
-                          onClick={() => copyJobPitch(selectedJob)}
-                          className="text-stone-500 hover:text-stone-900 text-[11px] font-normal underline"
-                        >
-                          {copiedId === selectedJob.id ? '✓ Pitch Copied' : 'Copy Pitch'}
-                        </button>
-                      </h4>
-                      <div className="bg-stone-50 p-3 rounded-2xl border border-stone-200/60 text-stone-700 whitespace-pre-wrap leading-relaxed max-h-60 overflow-y-auto text-[11px]">
-                        {selectedJob['Job Description'] || 'No description provided.'}
-                      </div>
-                    </div>
+                    )}
 
                   </div>
 
                   {/* Drawer Footer Actions */}
-                  <div className="p-3 border-t border-stone-100 bg-stone-50 flex items-center justify-between gap-2">
+                  <div className="p-3 border-t border-stone-100 bg-stone-50 flex items-center justify-between gap-2 shrink-0">
                     <button
                       onClick={() => copyJobPitch(selectedJob)}
                       className="flex-1 bg-stone-900 hover:bg-stone-800 text-white font-medium py-2.5 rounded-xl text-xs transition shadow-sm flex items-center justify-center gap-1.5"
                     >
                       <span>📋</span>
-                      <span>{copiedId === selectedJob.id ? 'Copied to Clipboard!' : 'Copy Pitch for Candidate'}</span>
+                      <span>{copiedId === selectedJob.id ? 'Copied to Clipboard!' : 'Copy Job Pitch for Candidate'}</span>
                     </button>
                   </div>
 
