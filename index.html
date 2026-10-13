@@ -104,6 +104,98 @@
       background: transparent !important;
       border: none !important;
     }
+    /* Plain Executive iOS Checkbox from Uiverse.io */
+    .checkbox-container {
+      display: inline-flex;
+      align-items: center;
+      gap: 14px;
+      padding: 5px 12px;
+      background: #FFFFFF;
+      border: 1px solid #E8E5DF;
+      border-radius: 12px;
+      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
+    }
+    .ios-checkbox {
+      --checkbox-size: 18px;
+      --checkbox-color: #1C1916;
+      --checkbox-bg: #E8E5DF;
+      --checkbox-border: #D6D1C7;
+      position: relative;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      cursor: pointer;
+      user-select: none;
+      -webkit-tap-highlight-color: transparent;
+      font-size: 12px;
+      font-weight: 500;
+      color: #575249;
+      transition: color 0.15s ease;
+    }
+    .ios-checkbox:hover {
+      color: #1C1916;
+    }
+    .ios-checkbox input {
+      display: none;
+    }
+    .checkbox-wrapper {
+      position: relative;
+      width: var(--checkbox-size);
+      height: var(--checkbox-size);
+      border-radius: 6px;
+      transition: transform 0.2s ease;
+      flex-shrink: 0;
+    }
+    .checkbox-bg {
+      position: absolute;
+      inset: 0;
+      border-radius: 6px;
+      border: 1.5px solid var(--checkbox-border);
+      background: white;
+      transition: all 0.2s ease;
+    }
+    .checkbox-icon {
+      position: absolute;
+      inset: 0;
+      margin: auto;
+      width: 75%;
+      height: 75%;
+      color: white;
+      transform: scale(0);
+      transition: all 0.2s ease;
+    }
+    .check-path {
+      stroke-dasharray: 40;
+      stroke-dashoffset: 40;
+      transition: stroke-dashoffset 0.25s ease 0.05s;
+    }
+    .ios-checkbox input:checked + .checkbox-wrapper .checkbox-bg {
+      background: var(--checkbox-color);
+      border-color: var(--checkbox-color);
+    }
+    .ios-checkbox input:checked + .checkbox-wrapper .checkbox-icon {
+      transform: scale(1);
+    }
+    .ios-checkbox input:checked + .checkbox-wrapper .check-path {
+      stroke-dashoffset: 0;
+    }
+    .ios-checkbox input:checked ~ span {
+      color: #1C1916;
+      font-weight: 600;
+    }
+    .ios-checkbox:hover .checkbox-wrapper {
+      transform: scale(1.06);
+    }
+    .ios-checkbox:active .checkbox-wrapper {
+      transform: scale(0.94);
+    }
+    @keyframes ios-bounce {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.15); }
+    }
+    .ios-checkbox input:checked + .checkbox-wrapper {
+      animation: ios-bounce 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    }
     /* Candidate search pulse animation */
     .candidate-pulse {
       box-shadow: 0 0 0 0 rgba(43, 39, 35, 0.5);
@@ -486,8 +578,30 @@
       const searchBoxRef = useRef(null);
       const [keywordFilter, setKeywordFilter] = useState('');
       const [selectedOwner, setSelectedOwner] = useState('ALL');
+      const [regionFilter, setRegionFilter] = useState('ALL'); // 'ALL' | 'ONTARIO' | 'CANADA' | 'GLOBAL'
       const [maxRadius, setMaxRadius] = useState('ALL');
       const [unit, setUnit] = useState('km'); // 'km' | 'mi'
+
+      const handleRegionChange = (newRegion) => {
+        setRegionFilter(newRegion);
+        if (mapInstanceRef.current && jobs.length > 0) {
+          if (newRegion === 'ONTARIO') {
+            const ontarioCoords = jobs
+              .filter(j => j.coords && j.coords[0] >= 41.5 && j.coords[0] <= 46.5 && j.coords[1] >= -84.0 && j.coords[1] <= -74.0)
+              .map(j => j.coords);
+            if (ontarioCoords.length > 0) {
+              mapInstanceRef.current.fitBounds(ontarioCoords, { padding: [50, 50], maxZoom: 8 });
+            } else {
+              mapInstanceRef.current.setView([43.9, -79.8], 7);
+            }
+          } else {
+            const validCoords = jobs.filter(j => j.coords).map(j => j.coords);
+            if (validCoords.length > 0) {
+              mapInstanceRef.current.fitBounds(validCoords, { padding: [50, 50] });
+            }
+          }
+        }
+      };
 
       // Selection & Drawer State
       const [selectedJob, setSelectedJob] = useState(null);
@@ -717,7 +831,7 @@
 
         const bounds = [];
 
-        jobs.forEach(job => {
+        processedJobs.forEach(job => {
           if (!job.coords) return;
           const [lat, lng] = job.coords;
           bounds.push([lat, lng]);
@@ -772,7 +886,7 @@
           hasInitiallyFittedRef.current = true;
         }
         map.invalidateSize();
-      }, [jobs, selectedJob, searchCoords, isAuthenticated]);
+      }, [processedJobs, selectedJob, searchCoords, isAuthenticated]);
 
       // 4. Geocode Location Search (Multi-stage fallback for partial & full addresses)
       const handleLocationSearch = async (e) => {
@@ -1108,6 +1222,25 @@
               if (job.distance > parseInt(maxRadius)) return false;
             }
 
+            if (regionFilter === 'ONTARIO') {
+              const [lat, lng] = job.coords || [0, 0];
+              const isOntCoords = lat >= 41.5 && lat <= 46.5 && lng >= -84.0 && lng <= -74.0;
+              const isOntText = /\b(on|ontario|toronto|windsor|mississauga|brampton|hamilton|london|kitchener|waterloo|markham|vaughan|ottawa|cambridge|guelph|barrie|oakville|burlington|oshawa|st\. catharines|peterborough|belleville|stratford|chatham|sarnia|newmarket|ajax|pickering|whitby)\b/i.test(job.displayLocation || job.rawLocation || '');
+              if (!isOntCoords && !isOntText) return false;
+            } else if (regionFilter === 'CANADA') {
+              const [lat, lng] = job.coords || [0, 0];
+              const isOntCoords = lat >= 41.5 && lat <= 46.5 && lng >= -84.0 && lng <= -74.0;
+              const isCanCoords = isOntCoords || (lat >= 41.0 && lat <= 70.0 && lng >= -141.0 && lng <= -52.0);
+              const isCanText = /\b(on|ontario|bc|british columbia|ab|alberta|qc|quebec|mb|manitoba|sk|saskatchewan|ns|nova scotia|nb|new brunswick|nl|newfoundland|pe|prince edward island|canada)\b/i.test(job.displayLocation || job.rawLocation || '') || /canada/i.test(job['Job Description'] || '');
+              if (!isCanCoords && !isCanText) return false;
+            } else if (regionFilter === 'GLOBAL') {
+              const [lat, lng] = job.coords || [0, 0];
+              const isOntCoords = lat >= 41.5 && lat <= 46.5 && lng >= -84.0 && lng <= -74.0;
+              const isCanCoords = isOntCoords || (lat >= 41.0 && lat <= 70.0 && lng >= -141.0 && lng <= -52.0);
+              const isCanText = /\b(on|ontario|bc|ab|qc|mb|sk|ns|nb|nl|pe|canada)\b/i.test(job.displayLocation || job.rawLocation || '') || /canada/i.test(job['Job Description'] || '');
+              if (isCanCoords || isCanText) return false;
+            }
+
             return true;
           })
           .sort((a, b) => {
@@ -1118,7 +1251,7 @@
             }
             return 0;
           });
-      }, [jobs, searchCoords, keywordFilter, selectedOwner, maxRadius, unit]);
+      }, [jobs, searchCoords, keywordFilter, selectedOwner, maxRadius, unit, regionFilter]);
 
       const handleSelectJob = (job) => {
         setSelectedJob(job);
@@ -1427,6 +1560,71 @@
                 >
                   mi
                 </button>
+              </div>
+
+              {/* Region Filter Checkboxes (Plain iOS Style from Uiverse.io) */}
+              <div className="checkbox-container">
+                <span className="text-[10px] font-mono uppercase tracking-wider text-stone-400 font-semibold mr-0.5">Region:</span>
+                
+                <label className="ios-checkbox">
+                  <input
+                    type="checkbox"
+                    checked={regionFilter === 'ALL'}
+                    onChange={() => handleRegionChange('ALL')}
+                  />
+                  <div className="checkbox-wrapper">
+                    <div className="checkbox-bg"></div>
+                    <svg className="checkbox-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                      <polyline className="check-path" points="20 6 9 17 4 12"></polyline>
+                    </svg>
+                  </div>
+                  <span>Show All</span>
+                </label>
+
+                <label className="ios-checkbox">
+                  <input
+                    type="checkbox"
+                    checked={regionFilter === 'ONTARIO'}
+                    onChange={() => handleRegionChange('ONTARIO')}
+                  />
+                  <div className="checkbox-wrapper">
+                    <div className="checkbox-bg"></div>
+                    <svg className="checkbox-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                      <polyline className="check-path" points="20 6 9 17 4 12"></polyline>
+                    </svg>
+                  </div>
+                  <span>Ontario Only</span>
+                </label>
+
+                <label className="ios-checkbox">
+                  <input
+                    type="checkbox"
+                    checked={regionFilter === 'CANADA'}
+                    onChange={() => handleRegionChange('CANADA')}
+                  />
+                  <div className="checkbox-wrapper">
+                    <div className="checkbox-bg"></div>
+                    <svg className="checkbox-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                      <polyline className="check-path" points="20 6 9 17 4 12"></polyline>
+                    </svg>
+                  </div>
+                  <span>Canada</span>
+                </label>
+
+                <label className="ios-checkbox">
+                  <input
+                    type="checkbox"
+                    checked={regionFilter === 'GLOBAL'}
+                    onChange={() => handleRegionChange('GLOBAL')}
+                  />
+                  <div className="checkbox-wrapper">
+                    <div className="checkbox-bg"></div>
+                    <svg className="checkbox-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                      <polyline className="check-path" points="20 6 9 17 4 12"></polyline>
+                    </svg>
+                  </div>
+                  <span>Global</span>
+                </label>
               </div>
 
             </div>
