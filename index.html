@@ -208,17 +208,19 @@
     }
     /* Draggable Resizer Handle */
     .resizer-handle {
-      width: 6px;
+      width: 10px;
+      margin-left: -5px;
+      margin-right: -5px;
       cursor: col-resize;
-      background: #E8E5DF;
+      background: transparent;
       transition: background 0.15s ease;
       position: relative;
-      z-index: 25;
+      z-index: 30;
       flex-shrink: 0;
     }
     .resizer-handle:hover,
     .resizer-handle.resizing {
-      background: #2B2723;
+      background: rgba(43, 39, 35, 0.12);
     }
     .resizer-handle::after {
       content: '';
@@ -226,14 +228,15 @@
       top: 50%;
       left: 50%;
       transform: translate(-50%, -50%);
-      width: 2px;
-      height: 24px;
-      border-radius: 2px;
-      background: #A8A194;
+      width: 3px;
+      height: 36px;
+      border-radius: 9999px;
+      background: #C7C2B8;
+      transition: background 0.15s ease;
     }
     .resizer-handle:hover::after,
     .resizer-handle.resizing::after {
-      background: #FAF9F6;
+      background: #2B2723;
     }
     /* Distance Midpoint Tooltip on Polyline */
     .distance-midpoint-tooltip {
@@ -824,14 +827,7 @@
         setRegionFilter(newRegion);
         if (mapInstanceRef.current && jobs.length > 0) {
           if (newRegion === 'ONTARIO') {
-            const ontarioCoords = jobs
-              .filter(j => j.coords && j.coords[0] >= 41.5 && j.coords[0] <= 46.5 && j.coords[1] >= -84.0 && j.coords[1] <= -74.0)
-              .map(j => j.coords);
-            if (ontarioCoords.length > 0) {
-              mapInstanceRef.current.fitBounds(ontarioCoords, { padding: [50, 50], maxZoom: 8 });
-            } else {
-              mapInstanceRef.current.setView([43.9, -79.8], 7);
-            }
+            mapInstanceRef.current.setView([43.6532, -79.3832], 9.5, { animate: true });
           } else {
             const validCoords = jobs.filter(j => j.coords).map(j => j.coords);
             if (validCoords.length > 0) {
@@ -843,6 +839,11 @@
 
       // Selection & Drawer State
       const [selectedJob, setSelectedJob] = useState(null);
+      const [selectedCandidateGroup, setSelectedCandidateGroup] = useState(null);
+      const [candidateCityFilterText, setCandidateCityFilterText] = useState('');
+      const [showJobsLayer, setShowJobsLayer] = useState(true);
+      const [showCandidatesLayer, setShowCandidatesLayer] = useState(true);
+      const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
       const [activeTab, setActiveTab] = useState('both');
       const [copiedId, setCopiedId] = useState(null);
 
@@ -858,7 +859,7 @@
       // Resizable Sidebar Split Pane State
       const [sidebarWidth, setSidebarWidth] = useState(() => {
         const saved = localStorage.getItem('tttg_sidebar_width');
-        return saved ? Math.min(Math.max(parseInt(saved, 10), 260), 650) : 360;
+        return saved ? Math.min(Math.max(parseInt(saved, 10), 220), 650) : 320;
       });
       const [isResizing, setIsResizing] = useState(false);
 
@@ -867,10 +868,18 @@
         setIsResizing(true);
       };
 
+      const resetSidebarWidth = () => {
+        setSidebarWidth(320);
+        localStorage.setItem('tttg_sidebar_width', 320);
+        if (mapInstanceRef.current) {
+          setTimeout(() => mapInstanceRef.current.invalidateSize(), 50);
+        }
+      };
+
       useEffect(() => {
         const handleMouseMove = (e) => {
           if (!isResizing) return;
-          const newWidth = Math.min(Math.max(e.clientX, 260), Math.min(window.innerWidth * 0.65, 680));
+          const newWidth = Math.min(Math.max(e.clientX, 220), Math.min(window.innerWidth * 0.65, 650));
           setSidebarWidth(newWidth);
           if (mapInstanceRef.current) {
             mapInstanceRef.current.invalidateSize();
@@ -910,6 +919,7 @@
       const mapInstanceRef = useRef(null);
       const markersRef = useRef({});
       const candidateMarkersRef = useRef({});
+      const candidateCityMarkersRef = useRef({});
       const connectionLineRef = useRef(null);
       const searchMarkerRef = useRef(null);
       const userMarkerRef = useRef(null);
@@ -1143,8 +1153,8 @@
 
         if (!mapInstanceRef.current) {
           const map = L.map(mapContainerRef.current, {
-            center: [43.65, -80.0],
-            zoom: 8.5,
+            center: [43.6532, -79.3832],
+            zoom: 9.5,
             zoomControl: false,
             preferCanvas: true,
             zoomSnap: 0.25,
@@ -1187,70 +1197,140 @@
           }, 250);
           return () => clearTimeout(timer);
         }
-      }, [jobs, searchCoords, activeTab, sidebarWidth]);
+      }, [jobs, searchCoords, activeTab, sidebarWidth, isSidebarCollapsed]);
 
-      // 3. Update Markers with Warm Executive Pin Design
+      // Candidates grouped by generalized city/coordinates for map pin clusters
+      const candidateCityGroups = useMemo(() => {
+        const groups = {};
+        candidates.forEach(cand => {
+          if (!cand.coords) return;
+          const key = `${cand.coords[0].toFixed(3)},${cand.coords[1].toFixed(3)}`;
+          if (!groups[key]) {
+            groups[key] = {
+              key,
+              coords: cand.coords,
+              cityName: cand.location || 'Unknown Location',
+              candidates: []
+            };
+          }
+          groups[key].candidates.push(cand);
+        });
+        return Object.values(groups);
+      }, [candidates]);
+
+      // 3. Update Markers (Jobs & Candidate City Clusters)
       useEffect(() => {
         const map = mapInstanceRef.current;
         if (!map) return;
 
+        // Clear previous job markers
         Object.values(markersRef.current).forEach(m => map.removeLayer(m));
         markersRef.current = {};
 
-        const bounds = [];
+        // Clear previous candidate city markers
+        Object.values(candidateCityMarkersRef.current).forEach(m => map.removeLayer(m));
+        candidateCityMarkersRef.current = {};
 
-        processedJobs.forEach(job => {
-          if (!job.coords) return;
-          const [lat, lng] = job.coords;
-          bounds.push([lat, lng]);
+        // 3a. Plot Jobs (when showJobsLayer is active)
+        if (showJobsLayer) {
+          processedJobs.forEach(job => {
+            if (!job.coords) return;
+            const [lat, lng] = job.coords;
+            const isSelected = selectedJob && selectedJob.id === job.id;
 
-          const isSelected = selectedJob && selectedJob.id === job.id;
+            // Pure Emoji Marker
+            const iconHtml = `
+              <div class="relative cursor-pointer transform transition-all duration-200 select-none flex flex-col items-center justify-center ${isSelected ? 'scale-125 -translate-y-1 z-50' : 'hover:scale-125 hover:-translate-y-0.5'}">
+                <span class="text-2xl leading-none filter drop-shadow">💰</span>
+                ${isSelected ? '<span class="w-1.5 h-1.5 rounded-full bg-stone-900 mt-0.5 ring-2 ring-stone-300"></span>' : ''}
+              </div>
+            `;
 
-          // Pure Emoji Marker (No background circle)
-          const iconHtml = `
-            <div class="relative cursor-pointer transform transition-all duration-200 select-none flex flex-col items-center justify-center ${isSelected ? 'scale-125 -translate-y-1 z-50' : 'hover:scale-125 hover:-translate-y-0.5'}">
-              <span class="text-2xl leading-none filter drop-shadow">💰</span>
-              ${isSelected ? '<span class="w-1.5 h-1.5 rounded-full bg-stone-900 mt-0.5 ring-2 ring-stone-300"></span>' : ''}
-            </div>
-          `;
+            const customIcon = L.divIcon({
+              html: iconHtml,
+              className: 'custom-job-pin',
+              iconSize: [28, 28],
+              iconAnchor: [14, 24],
+              popupAnchor: [0, -24]
+            });
 
-          const customIcon = L.divIcon({
-            html: iconHtml,
-            className: 'custom-job-pin',
-            iconSize: [28, 28],
-            iconAnchor: [14, 24],
-            popupAnchor: [0, -24]
+            const marker = L.marker([lat, lng], { icon: customIcon });
+
+            marker.bindTooltip(`
+              <div class="px-1 py-0.5">
+                <p class="font-semibold text-stone-900 text-xs">${job['Job Title']}</p>
+                <p class="text-stone-500 text-[10px]">${job['Company']}</p>
+                <p class="text-stone-700 text-[10px] mt-0.5 font-medium">📍 ${job.displayLocation}${job.isMultiLocation ? ` (Site ${job.locationIndex}/${job.totalLocations})` : ''}</p>
+              </div>
+            `, { direction: 'top', offset: [0, -20], opacity: 0.98, className: 'leaflet-popup-content-wrapper p-2' });
+
+            marker.on('click', () => {
+              setSelectedCandidateGroup(null);
+              handleSelectJob(job);
+              const el = document.getElementById(`job-card-${job.id}`);
+              if (el) {
+                el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+              }
+            });
+
+            marker.addTo(map);
+            markersRef.current[job.id] = marker;
           });
+        }
 
-          const marker = L.marker([lat, lng], { icon: customIcon });
+        // 3b. Plot Candidate City Clusters (when showCandidatesLayer is active)
+        if (showCandidatesLayer) {
+          candidateCityGroups.forEach(group => {
+            if (!group.coords) return;
+            const isSelectedGroup = selectedCandidateGroup && selectedCandidateGroup.key === group.key;
 
-          marker.bindTooltip(`
-            <div class="px-1 py-0.5">
-              <p class="font-semibold text-stone-900 text-xs">${job['Job Title']}</p>
-              <p class="text-stone-500 text-[10px]">${job['Company']}</p>
-              <p class="text-stone-700 text-[10px] mt-0.5 font-medium">📍 ${job.displayLocation}${job.isMultiLocation ? ` (Site ${job.locationIndex}/${job.totalLocations})` : ''}</p>
-            </div>
-          `, { direction: 'top', offset: [0, -20], opacity: 0.98, className: 'leaflet-popup-content-wrapper p-2' });
+            const candCityIcon = L.divIcon({
+              html: `
+                <div class="relative cursor-pointer select-none flex flex-col items-center justify-center transition-all duration-200 ${isSelectedGroup ? 'scale-125 z-50' : 'hover:scale-120 hover:-translate-y-0.5'}">
+                  <div class="relative w-8 h-8 flex items-center justify-center candidate-pin-glow">
+                    <img src="./candidate-pin.png" class="w-8 h-8 object-contain filter drop-shadow-md" alt="${group.cityName}" />
+                    <span class="absolute -top-1.5 -right-1.5 bg-stone-900 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full border border-white shadow-md leading-none">
+                      ${group.candidates.length}
+                    </span>
+                  </div>
+                </div>
+              `,
+              className: 'custom-candidate-city-pin',
+              iconSize: [32, 32],
+              iconAnchor: [16, 16],
+              popupAnchor: [0, -16]
+            });
 
-          marker.on('click', () => {
-            handleSelectJob(job);
-            const el = document.getElementById(`job-card-${job.id}`);
-            if (el) {
-              el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-            }
+            const marker = L.marker(group.coords, { icon: candCityIcon });
+
+            marker.bindTooltip(`
+              <div class="px-2 py-1 text-center">
+                <p class="font-bold text-stone-900 text-xs">🌿 ${group.cityName}</p>
+                <p class="text-stone-600 text-[10px] font-medium">${group.candidates.length} Candidate${group.candidates.length > 1 ? 's' : ''}</p>
+                <p class="text-stone-400 text-[9px] mt-0.5">Click to view candidate list</p>
+              </div>
+            `, { direction: 'top', offset: [0, -14], opacity: 0.98, className: 'leaflet-popup-content-wrapper p-2' });
+
+            marker.on('click', () => {
+              setSelectedJob(null);
+              setSelectedCandidateGroup(group);
+              if (mapInstanceRef.current) {
+                mapInstanceRef.current.flyTo(group.coords, Math.max(mapInstanceRef.current.getZoom(), 9.5), { duration: 0.8 });
+              }
+            });
+
+            marker.addTo(map);
+            candidateCityMarkersRef.current[group.key] = marker;
           });
+        }
 
-          marker.addTo(map);
-          markersRef.current[job.id] = marker;
-        });
-
-        // Focus Southern Ontario comfortably once on initial load (avoids clumping)
-        if (!hasInitiallyFittedRef.current && !searchCoords && !selectedJob) {
-          map.setView([43.65, -80.0], 8.5);
+        // Focus Toronto, ON comfortably once on initial load (avoids clumping)
+        if (!hasInitiallyFittedRef.current && !searchCoords && !selectedJob && !selectedCandidateGroup) {
+          map.setView([43.6532, -79.3832], 9.5);
           hasInitiallyFittedRef.current = true;
         }
         map.invalidateSize();
-      }, [processedJobs, selectedJob, searchCoords, isAuthenticated]);
+      }, [processedJobs, candidateCityGroups, selectedJob, selectedCandidateGroup, showJobsLayer, showCandidatesLayer, searchCoords, isAuthenticated]);
 
       // 4. Geocode Location Search (Multi-stage fallback for partial & full addresses)
       const handleLocationSearch = async (e) => {
@@ -1686,6 +1766,17 @@
           });
       }, [selectedJob, candidates, candidateRadius, filterSimilarTitlesOnly, candidateSearchText, unit]);
 
+      // Candidates inside the selected candidate city cluster, filtered by city text search
+      const filteredCityCandidates = useMemo(() => {
+        if (!selectedCandidateGroup) return [];
+        if (!candidateCityFilterText.trim()) return selectedCandidateGroup.candidates;
+        const q = candidateCityFilterText.toLowerCase().trim();
+        return selectedCandidateGroup.candidates.filter(c => {
+          const str = `${c.name} ${c.title} ${c.company} ${c.notes} ${c.industry} ${c.compensationTarget}`.toLowerCase();
+          return str.includes(q);
+        });
+      }, [selectedCandidateGroup, candidateCityFilterText]);
+
       // Pin a candidate on the map and draw connection line to the current job
       const handlePinCandidateOnMap = (cand) => {
         const map = mapInstanceRef.current;
@@ -1771,10 +1862,12 @@
         setTimeout(() => setCopiedId(null), 2500);
       };
 
-      // Geolocation handler for "📍 My Location"
+      // Geolocation handler for "My Location" (with Toronto, ON fallback)
       const handleFocusMyLocation = () => {
         if (!navigator.geolocation) {
-          setSearchError('Geolocation is not supported by your browser.');
+          if (mapInstanceRef.current) {
+            mapInstanceRef.current.setView([43.6532, -79.3832], 9.5, { animate: true });
+          }
           return;
         }
         navigator.geolocation.getCurrentPosition(
@@ -1802,8 +1895,10 @@
             }
           },
           (err) => {
-            console.warn('Geolocation lookup notice:', err);
-            setSearchError('Could not retrieve your current location. Please check browser permissions.');
+            console.warn('Geolocation lookup notice, centering on Toronto, ON:', err);
+            if (mapInstanceRef.current) {
+              mapInstanceRef.current.setView([43.6532, -79.3832], 9.5, { animate: true });
+            }
           },
           { enableHighAccuracy: true, timeout: 8000 }
         );
@@ -1987,32 +2082,30 @@
                         }
                       }
                     }}
-                    className="w-full pl-9 pr-24 py-2 bg-white border border-stone-200 focus:border-stone-800 rounded-xl text-xs sm:text-sm text-stone-900 placeholder-stone-400 focus:outline-none focus:ring-1 focus:ring-stone-800 shadow-sm transition"
+                    className="w-full pl-9 pr-9 py-2 bg-white border border-stone-200 focus:border-stone-800 rounded-xl text-xs sm:text-sm text-stone-900 placeholder-stone-400 focus:outline-none focus:ring-1 focus:ring-stone-800 shadow-sm transition"
                   />
-                  <div className="absolute right-1.5 flex items-center gap-1">
-                    {searchCoords && (
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setSearchQuery('');
-                          setSearchCoords(null);
-                          setSearchAddressName('');
-                          setSearchError(null);
-                          setShowSuggestions(false);
-                        }}
-                        className="text-xs text-stone-400 hover:text-stone-700 px-1.5 py-1"
-                      >
-                        ✕
-                      </button>
-                    )}
-                    <button
-                      type="submit"
-                      disabled={isSearchingLocation}
-                      className="bg-stone-900 hover:bg-stone-800 disabled:opacity-50 text-white px-3 py-1 rounded-lg text-xs font-medium shadow-sm transition"
-                    >
-                      {isSearchingLocation ? 'Finding...' : 'Rank Proximity'}
-                    </button>
-                  </div>
+                  {(searchQuery || searchCoords) && (
+                    <div className="absolute right-2 flex items-center gap-1">
+                      {isSearchingLocation ? (
+                        <div className="w-3.5 h-3.5 border-2 border-stone-500 border-t-transparent rounded-full animate-spin"></div>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setSearchQuery('');
+                            setSearchCoords(null);
+                            setSearchAddressName('');
+                            setSearchError(null);
+                            setShowSuggestions(false);
+                          }}
+                          className="text-xs text-stone-400 hover:text-stone-800 p-1 rounded-full transition"
+                          title="Clear search"
+                        >
+                          ✕
+                        </button>
+                      )}
+                    </div>
+                  )}
                 </form>
 
                 {/* UBER-STYLE AUTOCOMPLETE DROPDOWN */}
@@ -2227,14 +2320,30 @@
 
             {/* SIDEBAR: RANKED JOB CARDS LIST */}
             <div
-              style={{ width: activeTab === 'map' ? undefined : (window.innerWidth >= 1024 ? `${sidebarWidth}px` : '100%') }}
+              style={{
+                width: activeTab === 'map' ? undefined : (isSidebarCollapsed ? '0px' : (window.innerWidth >= 1024 ? `${sidebarWidth}px` : '100%')),
+                display: isSidebarCollapsed ? 'none' : undefined
+              }}
               className={`border-r border-stone-200 bg-[#FAF9F6] flex flex-col shrink-0 overflow-hidden ${activeTab === 'map' ? 'hidden lg:flex' : 'flex'}`}
             >
               
               {/* List Header */}
               <div className="p-3 bg-white border-b border-stone-200 flex items-center justify-between text-xs text-stone-500">
                 <span>Showing <b>{processedJobs.length}</b> Active Roles</span>
-                {searchCoords && <span className="text-stone-900 font-medium">Nearest first ⬇️</span>}
+                <div className="flex items-center gap-2">
+                  {searchCoords && <span className="text-stone-900 font-medium hidden sm:inline">Nearest first ⬇️</span>}
+                  <button
+                    onClick={() => {
+                      setIsSidebarCollapsed(true);
+                      setTimeout(() => mapInstanceRef.current && mapInstanceRef.current.invalidateSize(), 100);
+                    }}
+                    title="Collapse sidebar to maximize map space"
+                    className="text-stone-400 hover:text-stone-800 p-1 rounded-lg hover:bg-stone-100 transition hidden lg:flex items-center gap-1 text-[11px]"
+                  >
+                    <span>◨</span>
+                    <span>Collapse</span>
+                  </button>
+                </div>
               </div>
 
               {/* Scrollable Container */}
@@ -2340,49 +2449,113 @@
             </div>
 
             {/* DRAGGABLE RESIZER HANDLE */}
-            <div
-              onMouseDown={startResizing}
-              className={`hidden lg:flex resizer-handle ${isResizing ? 'resizing' : ''}`}
-              title="Drag to resize job list and map"
-            />
+            {!isSidebarCollapsed && (
+              <div
+                onMouseDown={startResizing}
+                onDoubleClick={resetSidebarWidth}
+                className={`hidden lg:flex resizer-handle ${isResizing ? 'resizing' : ''}`}
+                title="Drag to resize job list and map (Double click to reset to 320px)"
+              />
+            )}
 
             {/* INTERACTIVE MAP */}
             <div className={`flex-1 relative h-full bg-stone-100 ${activeTab === 'list' ? 'hidden lg:block' : 'block'}`}>
               <div ref={mapContainerRef} id="map-viewport" className="w-full h-full z-10" />
 
-              {/* Map Floating Buttons */}
-              <div className="absolute top-4 right-4 z-20 flex flex-wrap items-center gap-2">
+              {/* Expand Sidebar Button (when collapsed) */}
+              {isSidebarCollapsed && (
+                <button
+                  onClick={() => {
+                    setIsSidebarCollapsed(false);
+                    setTimeout(() => mapInstanceRef.current && mapInstanceRef.current.invalidateSize(), 100);
+                  }}
+                  className="absolute top-4 left-4 z-20 bg-white hover:bg-stone-50 text-stone-900 text-xs px-3 py-2 rounded-xl border border-stone-200 shadow-md font-semibold transition flex items-center gap-1.5 animate-in fade-in"
+                  title="Expand active jobs sidebar"
+                >
+                  <span>◧</span>
+                  <span>Show Jobs ({processedJobs.length})</span>
+                </button>
+              )}
+
+              {/* Map Floating Controls */}
+              <div className="absolute top-4 right-4 z-20 flex flex-wrap items-center gap-1.5 sm:gap-2">
+                {/* Layer Toggles */}
+                <div className="flex bg-white/95 backdrop-blur p-1 rounded-xl border border-stone-200 shadow-md gap-1 text-xs font-semibold">
+                  <button
+                    onClick={() => setShowJobsLayer(prev => !prev)}
+                    className={`px-2.5 py-1 rounded-lg transition flex items-center gap-1.5 ${
+                      showJobsLayer
+                        ? 'bg-stone-900 text-white shadow-sm'
+                        : 'bg-transparent text-stone-400 hover:text-stone-700'
+                    }`}
+                    title="Toggle Job Pins on Map"
+                  >
+                    <span>💰</span>
+                    <span>Jobs ({processedJobs.length})</span>
+                  </button>
+
+                  <button
+                    onClick={() => setShowCandidatesLayer(prev => !prev)}
+                    className={`px-2.5 py-1 rounded-lg transition flex items-center gap-1.5 ${
+                      showCandidatesLayer
+                        ? 'bg-stone-900 text-white shadow-sm'
+                        : 'bg-transparent text-stone-400 hover:text-stone-700'
+                    }`}
+                    title="Toggle Candidate City Pins on Map"
+                  >
+                    <img src="./candidate-pin.png" className={`w-3.5 h-3.5 object-contain ${showCandidatesLayer ? 'invert brightness-200' : ''}`} alt="" />
+                    <span>Candidates ({candidates.length})</span>
+                  </button>
+                </div>
+
+                {/* Toronto, ON Focus */}
                 <button
                   onClick={() => {
                     if (mapInstanceRef.current) {
-                      mapInstanceRef.current.setView([43.65, -80.0], 8.5, { animate: true });
+                      mapInstanceRef.current.setView([43.6532, -79.3832], 9.5, { animate: true });
                     }
                   }}
-                  className="bg-white hover:bg-stone-50 text-stone-900 text-xs px-3 py-2 rounded-xl border border-stone-200 shadow-md font-medium transition flex items-center gap-1.5"
-                  title="Focus Southern Ontario & Greater Golden Horseshoe"
+                  className="bg-white hover:bg-stone-50 text-stone-900 text-xs px-2.5 py-2 rounded-xl border border-stone-200 shadow-md font-medium transition flex items-center gap-1.5"
+                  title="Center map on Toronto, ON"
                 >
-                  <span>🍁</span> Focus Ontario
+                  <span>🍁</span> Toronto, ON
                 </button>
 
+                {/* My Location GPS */}
                 <button
                   onClick={handleFocusMyLocation}
-                  className="bg-white hover:bg-stone-50 text-stone-900 text-xs px-3 py-2 rounded-xl border border-stone-200 shadow-md font-medium transition flex items-center gap-1.5"
+                  className="bg-white hover:bg-stone-50 text-stone-900 text-xs px-2.5 py-2 rounded-xl border border-stone-200 shadow-md font-medium transition flex items-center gap-1.5"
                   title="Center map on your current location"
                 >
-                  <span>📍</span> My Location
+                  <svg className="w-3.5 h-3.5 text-stone-700" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                    <circle cx="12" cy="12" r="7"></circle>
+                    <circle cx="12" cy="12" r="2" fill="currentColor"></circle>
+                    <line x1="12" y1="2" x2="12" y2="5"></line>
+                    <line x1="12" y1="19" x2="12" y2="22"></line>
+                    <line x1="2" y1="12" x2="5" y2="12"></line>
+                    <line x1="19" y1="12" x2="22" y2="12"></line>
+                  </svg>
+                  <span>My Location</span>
                 </button>
 
+                {/* All Pins */}
                 <button
                   onClick={() => {
-                    if (mapInstanceRef.current && jobs.length > 0) {
-                      const validCoords = jobs.filter(j => j.coords).map(j => j.coords);
-                      if (validCoords.length > 0) {
-                        mapInstanceRef.current.fitBounds(validCoords, { padding: [50, 50] });
+                    if (mapInstanceRef.current) {
+                      const allPoints = [];
+                      if (showJobsLayer) {
+                        jobs.filter(j => j.coords).forEach(j => allPoints.push(j.coords));
+                      }
+                      if (showCandidatesLayer) {
+                        candidateCityGroups.filter(g => g.coords).forEach(g => allPoints.push(g.coords));
+                      }
+                      if (allPoints.length > 0) {
+                        mapInstanceRef.current.fitBounds(allPoints, { padding: [50, 50] });
                       }
                     }
                   }}
-                  className="bg-white hover:bg-stone-50 text-stone-900 text-xs px-3 py-2 rounded-xl border border-stone-200 shadow-md font-medium transition flex items-center gap-1.5"
-                  title="Fit all job markers in view"
+                  className="bg-white hover:bg-stone-50 text-stone-900 text-xs px-2.5 py-2 rounded-xl border border-stone-200 shadow-md font-medium transition flex items-center gap-1.5"
+                  title="Fit all markers in view"
                 >
                   <span>🌐</span> All Pins
                 </button>
@@ -2483,17 +2656,58 @@
                           )}
                         </div>
 
-                        {/* Jump to Candidates Button Callout */}
-                        <button
-                          onClick={() => setDrawerTab('candidates')}
-                          className="w-full bg-stone-900 hover:bg-stone-800 text-white p-2.5 rounded-xl font-medium text-xs flex items-center justify-between transition shadow-sm"
-                        >
-                          <span className="flex items-center gap-1.5">
-                            <span>🎯</span>
-                            <span>View {matchedCandidates.length} Matched Candidates in this Area</span>
-                          </span>
-                          <span>&rarr;</span>
-                        </button>
+                        {/* Fast Candidate Matching Action Bar */}
+                        <div className="bg-stone-100/90 p-3 rounded-2xl border border-stone-200/90 space-y-2">
+                          <div className="flex items-center justify-between text-xs">
+                            <span className="font-semibold text-stone-900 flex items-center gap-1.5">
+                              <span>🎯</span>
+                              <span>Candidate Matches in Area</span>
+                            </span>
+                            <span className="bg-stone-900 text-white text-[10px] px-2 py-0.5 rounded-full font-bold">
+                              {matchedCandidates.length} found
+                            </span>
+                          </div>
+
+                          <div className="grid grid-cols-2 gap-1.5 pt-0.5">
+                            <button
+                              onClick={() => {
+                                setFilterSimilarTitlesOnly(true);
+                                setCandidateRadius('ALL');
+                                setDrawerTab('candidates');
+                              }}
+                              className="bg-white hover:bg-stone-50 text-stone-900 border border-stone-200 hover:border-stone-400 p-2 rounded-xl text-left font-medium transition shadow-sm flex items-center justify-between text-[11px]"
+                              title="Filter to candidates with matching titles or background"
+                            >
+                              <span className="truncate">🎯 Similar Titles</span>
+                              <span className="text-stone-400 text-[10px] shrink-0 ml-1">&rarr;</span>
+                            </button>
+
+                            <button
+                              onClick={() => {
+                                setFilterSimilarTitlesOnly(false);
+                                setCandidateRadius('25');
+                                setDrawerTab('candidates');
+                              }}
+                              className="bg-white hover:bg-stone-50 text-stone-900 border border-stone-200 hover:border-stone-400 p-2 rounded-xl text-left font-medium transition shadow-sm flex items-center justify-between text-[11px]"
+                              title="Filter to candidates within 25 km of this job"
+                            >
+                              <span className="truncate">📍 Within 25 {unit}</span>
+                              <span className="text-stone-400 text-[10px] shrink-0 ml-1">&rarr;</span>
+                            </button>
+                          </div>
+
+                          <button
+                            onClick={() => {
+                              setFilterSimilarTitlesOnly(false);
+                              setCandidateRadius('ALL');
+                              setDrawerTab('candidates');
+                            }}
+                            className="w-full bg-stone-900 hover:bg-stone-800 text-white py-2 px-3 rounded-xl font-medium text-xs flex items-center justify-between transition shadow-sm"
+                          >
+                            <span>View All {matchedCandidates.length} Candidates in Area</span>
+                            <span>&rarr;</span>
+                          </button>
+                        </div>
 
                         {/* Job Description */}
                         <div>
@@ -2720,6 +2934,172 @@
                     >
                       <span>📋</span>
                       <span>{copiedId === selectedJob.id ? 'Copied to Clipboard!' : 'Copy Job Pitch for Candidate'}</span>
+                    </button>
+                  </div>
+
+                </div>
+              )}
+
+              {/* SLIDE-OUT CANDIDATE CITY CLUSTER DRAWER */}
+              {selectedCandidateGroup && (
+                <div className="absolute top-4 left-4 right-4 sm:right-auto sm:w-[460px] max-h-[88%] bg-white/95 border border-stone-200 rounded-3xl shadow-2xl backdrop-blur z-30 flex flex-col overflow-hidden animate-in fade-in duration-150">
+                  
+                  {/* Drawer Header */}
+                  <div className="p-4 border-b border-stone-100 flex items-start justify-between bg-stone-50/50 shrink-0">
+                    <div className="flex-1 pr-2">
+                      <div className="flex items-center gap-2">
+                        <span className="text-[10px] font-mono uppercase tracking-wider text-stone-400 font-bold">Candidate Pool</span>
+                        <span className="bg-stone-900 text-white text-[10px] px-2 py-0.5 rounded-full font-semibold">
+                          🌿 {selectedCandidateGroup.candidates.length} in Area
+                        </span>
+                      </div>
+                      <h2 className="text-base font-bold text-stone-900 mt-0.5 leading-snug">
+                        {selectedCandidateGroup.cityName}
+                      </h2>
+                      <p className="text-xs text-stone-500">
+                        Generalized candidate hub location
+                      </p>
+                    </div>
+                    <button
+                      onClick={() => setSelectedCandidateGroup(null)}
+                      className="text-stone-400 hover:text-stone-900 p-1.5 rounded-lg hover:bg-stone-100 transition"
+                    >
+                      ✕
+                    </button>
+                  </div>
+
+                  {/* Action Bar: Rank All Active Jobs Nearest to this Candidate City */}
+                  <div className="p-3 bg-stone-50 border-b border-stone-200 shrink-0">
+                    <button
+                      onClick={() => {
+                        setSearchCoords(selectedCandidateGroup.coords);
+                        setSearchAddressName(selectedCandidateGroup.cityName);
+                        setSearchQuery(selectedCandidateGroup.cityName);
+                        if (isSidebarCollapsed) setIsSidebarCollapsed(false);
+                      }}
+                      className="w-full bg-stone-900 hover:bg-stone-800 text-white px-3 py-2.5 rounded-xl text-xs font-semibold flex items-center justify-center gap-2 transition shadow-sm"
+                    >
+                      <span>📍</span>
+                      <span>Rank All Active Jobs Nearest to {selectedCandidateGroup.cityName}</span>
+                    </button>
+                  </div>
+
+                  {/* Quick Filter Input within City */}
+                  <div className="p-3 border-b border-stone-100 bg-white shrink-0">
+                    <div className="relative">
+                      <input
+                        type="text"
+                        placeholder="Filter candidates by name, title, skill..."
+                        value={candidateCityFilterText}
+                        onChange={(e) => setCandidateCityFilterText(e.target.value)}
+                        className="w-full pl-7 pr-7 py-1.5 bg-stone-50 border border-stone-200 rounded-lg text-xs placeholder-stone-400 focus:outline-none focus:border-stone-800"
+                      />
+                      <span className="absolute left-2.5 top-2 text-[10px] text-stone-400">🔍</span>
+                      {candidateCityFilterText && (
+                        <button
+                          onClick={() => setCandidateCityFilterText('')}
+                          className="absolute right-2 top-1.5 text-xs text-stone-400 hover:text-stone-700"
+                        >
+                          ✕
+                        </button>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Scrollable Candidates List */}
+                  <div className="p-4 overflow-y-auto space-y-3 text-xs text-stone-700 flex-1 custom-scrollbar">
+                    {filteredCityCandidates.length === 0 ? (
+                      <div className="py-12 text-center text-stone-400 space-y-2">
+                        <p className="text-2xl">🌿</p>
+                        <p className="text-sm font-semibold text-stone-800">No candidates match search</p>
+                        <p className="text-xs text-stone-500">Try clearing the search filter above.</p>
+                      </div>
+                    ) : (
+                      filteredCityCandidates.map((cand) => (
+                        <div
+                          key={cand.id}
+                          className="p-3.5 rounded-2xl border border-stone-200/80 bg-white hover:border-stone-400 shadow-sm transition space-y-2"
+                        >
+                          {/* Name & Title */}
+                          <div className="flex items-start justify-between gap-2">
+                            <div className="flex-1 pr-1">
+                              <h5 className="font-bold text-xs text-stone-900">{cand.name}</h5>
+                              <p className="text-[11px] font-semibold text-stone-700 mt-0.5">{cand.title}</p>
+                            </div>
+                            {cand.compensationTarget && (
+                              <span className="bg-emerald-50 border border-emerald-200 text-emerald-800 text-[10px] px-2 py-0.5 rounded-md font-semibold shrink-0">
+                                💰 {cand.compensationTarget}
+                              </span>
+                            )}
+                          </div>
+
+                          {/* Zero-Clutter Details: Strictly omit empty fields */}
+                          <div className="space-y-1 text-[11px]">
+                            {cand.company && (
+                              <p className="text-stone-600">
+                                🏢 Company: <span className="font-medium text-stone-800">{cand.company}</span>
+                              </p>
+                            )}
+
+                            {cand.industry && (
+                              <p className="text-stone-600">
+                                🏭 Industry: <span className="font-normal">{cand.industry}</span>
+                              </p>
+                            )}
+
+                            {cand.notes && (
+                              <div className="p-2 rounded-xl text-[10px] bg-stone-50 border border-stone-200/60 text-stone-600 leading-relaxed">
+                                <b>Notes / Target:</b> {cand.notes}
+                              </div>
+                            )}
+
+                            {cand.shift && (
+                              <p className="text-stone-500 text-[10px]">⏱️ Shift: {cand.shift}</p>
+                            )}
+
+                            {cand.submittedTo && (
+                              <p className="text-stone-500 text-[10px]">
+                                👤 Client Track: {cand.submittedTo} {cand.submittedOn ? `(${cand.submittedOn})` : ''}
+                              </p>
+                            )}
+                          </div>
+
+                          {/* Action Buttons */}
+                          <div className="pt-2 border-t border-stone-100 flex items-center justify-between text-xs">
+                            <button
+                              onClick={() => copyCandidatePitch(cand)}
+                              className="text-[11px] bg-stone-100 hover:bg-stone-200 text-stone-800 px-2.5 py-1 rounded-lg border border-stone-200 font-medium transition flex items-center gap-1"
+                            >
+                              <span>📋</span>
+                              <span>{copiedId === cand.id ? '✓ Pitch Copied' : 'Copy Pitch'}</span>
+                            </button>
+
+                            {cand.submissionLink && (
+                              <a
+                                href={cand.submissionLink}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-[11px] font-semibold text-blue-500 hover:underline"
+                              >
+                                Profile &rarr;
+                              </a>
+                            )}
+                          </div>
+                        </div>
+                      ))
+                    )}
+                  </div>
+
+                  {/* Drawer Footer Actions */}
+                  <div className="p-3 border-t border-stone-100 bg-stone-50 flex items-center justify-between gap-2 shrink-0">
+                    <span className="text-[11px] text-stone-500">
+                      Showing {filteredCityCandidates.length} candidate{filteredCityCandidates.length !== 1 ? 's' : ''} in {selectedCandidateGroup.cityName}
+                    </span>
+                    <button
+                      onClick={() => setSelectedCandidateGroup(null)}
+                      className="text-stone-600 hover:text-stone-900 text-xs font-semibold px-2.5 py-1 rounded-lg border border-stone-200 hover:bg-stone-100 transition"
+                    >
+                      Close
                     </button>
                   </div>
 
