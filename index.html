@@ -100,7 +100,7 @@
     .custom-tooltip::before {
       border-top-color: #1C1916 !important;
     }
-    .custom-job-pin {
+    .custom-job-pin, .custom-candidate-city-pin, .custom-candidate-pin {
       background: transparent !important;
       border: none !important;
     }
@@ -828,7 +828,7 @@
         setRegionFilter(newRegion);
         if (mapInstanceRef.current && jobs.length > 0) {
           if (newRegion === 'ONTARIO') {
-            mapInstanceRef.current.setView([43.6532, -79.3832], 9.5, { animate: true });
+            mapInstanceRef.current.setView([43.6625, -79.3900], 13, { animate: true });
           } else {
             const validCoords = jobs.filter(j => j.coords).map(j => j.coords);
             if (validCoords.length > 0) {
@@ -1154,8 +1154,8 @@
 
         if (!mapInstanceRef.current) {
           const map = L.map(mapContainerRef.current, {
-            center: [43.6532, -79.3832],
-            zoom: 9.5,
+            center: [43.6625, -79.3900],
+            zoom: 13,
             zoomControl: false,
             preferCanvas: true,
             zoomSnap: 0.25,
@@ -1283,13 +1283,11 @@
             const [lat, lng] = job.coords;
             const isSelected = selectedJob && selectedJob.id === job.id;
 
-            // Unified Executive Pin Design: w-8 h-8 white circular badge with border-2 border-stone-800 shadow-md
+            // Job Pin: Standalone money bag with drop shadow and no background bubble
             const iconHtml = `
               <div class="relative cursor-pointer select-none flex flex-col items-center justify-center transition-all duration-200 ${isSelected ? 'scale-125 -translate-y-1 z-50' : 'hover:scale-120 hover:-translate-y-0.5'}">
-                <div class="w-8 h-8 rounded-full bg-white border-2 border-stone-800 shadow-md flex items-center justify-center p-1">
-                  <span class="text-xs leading-none">💰</span>
-                </div>
-                ${isSelected ? '<span class="w-1.5 h-1.5 rounded-full bg-stone-900 mt-0.5 ring-2 ring-stone-300"></span>' : ''}
+                <span class="text-2xl leading-none filter drop-shadow-[0_2px_4px_rgba(0,0,0,0.35)]">💰</span>
+                ${isSelected ? '<span class="w-1.5 h-1.5 rounded-full bg-stone-900 mt-0.5 ring-2 ring-white shadow"></span>' : ''}
               </div>
             `;
 
@@ -1333,14 +1331,12 @@
 
             const isPinned = pinnedCandidateId === cand.id;
 
-            // Unified Executive Pin Design: identical w-8 h-8 white circular badge with border-2 border-stone-800 shadow-md
+            // Candidate Pin: Standalone laurel wreath logo with drop shadow and no background bubble
             const candIcon = L.divIcon({
               html: `
                 <div class="relative cursor-pointer select-none flex flex-col items-center justify-center transition-all duration-200 ${isPinned ? 'scale-125 -translate-y-1 z-50' : 'hover:scale-120 hover:-translate-y-0.5'}">
-                  <div class="w-8 h-8 rounded-full bg-white border-2 border-stone-800 shadow-md flex items-center justify-center p-1.5 candidate-pin-glow">
-                    <img src="./candidate-pin.png" class="w-full h-full object-contain filter drop-shadow-sm" alt="${cand.name}" />
-                  </div>
-                  ${isPinned ? '<span class="w-1.5 h-1.5 rounded-full bg-stone-900 mt-0.5 ring-2 ring-stone-300"></span>' : ''}
+                  <img src="./candidate-pin.png" class="w-8 h-8 object-contain filter drop-shadow-[0_2px_4px_rgba(0,0,0,0.35)]" alt="${cand.name}" />
+                  ${isPinned ? '<span class="w-1.5 h-1.5 rounded-full bg-stone-900 mt-0.5 ring-2 ring-white shadow"></span>' : ''}
                 </div>
               `,
               className: 'custom-candidate-city-pin',
@@ -1383,7 +1379,7 @@
 
         // Focus Toronto, ON comfortably once on initial load (avoids clumping)
         if (!hasInitiallyFittedRef.current && !searchCoords && !selectedJob && !selectedCandidateGroup) {
-          map.setView([43.6532, -79.3832], 9.5);
+          map.setView([43.6625, -79.3900], 13);
           hasInitiallyFittedRef.current = true;
         }
         map.invalidateSize();
@@ -1863,13 +1859,11 @@
         Object.values(candidateMarkersRef.current).forEach(m => map.removeLayer(m));
         candidateMarkersRef.current = {};
 
-        // Place Candidate Marker using identical size & styling
+        // Place Candidate Marker using transparent emblem with drop shadow
         const candIcon = L.divIcon({
           html: `
             <div class="relative cursor-pointer select-none flex flex-col items-center justify-center transition-transform hover:scale-110">
-              <div class="w-8 h-8 rounded-full bg-white border-2 border-stone-800 shadow-xl flex items-center justify-center p-1.5 candidate-pin-glow">
-                <img src="./candidate-pin.png" class="w-full h-full object-contain filter drop-shadow-sm" alt="${cand.name}" />
-              </div>
+              <img src="./candidate-pin.png" class="w-8 h-8 object-contain filter drop-shadow-[0_2px_4px_rgba(0,0,0,0.35)]" alt="${cand.name}" />
               <span class="w-1.5 h-1.5 rounded-full bg-stone-900 mt-0.5 ring-2 ring-white shadow"></span>
             </div>
           `,
@@ -2583,11 +2577,11 @@
                 <button
                   onClick={() => {
                     if (mapInstanceRef.current) {
-                      mapInstanceRef.current.setView([43.6532, -79.3832], 9.5, { animate: true });
+                      mapInstanceRef.current.setView([43.6625, -79.3900], 13, { animate: true });
                     }
                   }}
                   className="bg-white hover:bg-stone-50 text-stone-900 text-xs px-2.5 py-2 rounded-xl border border-stone-200 shadow-md font-medium transition flex items-center gap-1.5"
-                  title="Center map on Toronto, ON"
+                  title="Center map on Downtown Toronto"
                 >
                   <span>🍁</span> Toronto, ON
                 </button>
