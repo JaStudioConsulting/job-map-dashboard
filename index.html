@@ -253,7 +253,8 @@
       display: none !important;
     }
     /* Candidate Pin & Marker Styling */
-    .custom-candidate-pin {
+    .custom-candidate-pin,
+    .custom-candidate-city-pin {
       background: transparent;
       border: none;
     }
@@ -850,7 +851,7 @@
       // Candidates & Proximity Matching State
       const [candidates, setCandidates] = useState([]);
       const [pinnedCandidateId, setPinnedCandidateId] = useState(null);
-      const [candidateRadius, setCandidateRadius] = useState('ALL'); // '25' | '50' | '100' | '250' | 'ALL'
+      const [candidateRadius, setCandidateRadius] = useState('50'); // Default within 50 km/mi of job
       const [filterSimilarTitlesOnly, setFilterSimilarTitlesOnly] = useState(false);
       const [drawerTab, setDrawerTab] = useState('role'); // 'role' | 'candidates'
       const [candidateSearchText, setCandidateSearchText] = useState('');
@@ -1287,9 +1288,9 @@
             const candCityIcon = L.divIcon({
               html: `
                 <div class="relative cursor-pointer select-none flex flex-col items-center justify-center transition-all duration-200 ${isSelectedGroup ? 'scale-125 z-50' : 'hover:scale-120 hover:-translate-y-0.5'}">
-                  <div class="relative w-8 h-8 flex items-center justify-center candidate-pin-glow">
-                    <img src="./candidate-pin.png" class="w-8 h-8 object-contain filter drop-shadow-md" alt="${group.cityName}" />
-                    <span class="absolute -top-1.5 -right-1.5 bg-stone-900 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full border border-white shadow-md leading-none">
+                  <div class="relative w-8 h-8 rounded-full bg-white border-2 border-stone-800 shadow-md flex items-center justify-center p-1 candidate-pin-glow">
+                    <img src="./candidate-pin.png" class="w-full h-full object-contain filter drop-shadow-sm" alt="${group.cityName}" />
+                    <span class="absolute -top-1.5 -right-1.5 bg-stone-900 text-white text-[9px] font-bold px-1.5 py-0.2 rounded-full border border-white shadow-md leading-none">
                       ${group.candidates.length}
                     </span>
                   </div>
@@ -1701,6 +1702,9 @@
         setSelectedJob(job);
         setPinnedCandidateId(null);
         setDrawerTab('role');
+        setCandidateRadius('50');
+        setFilterSimilarTitlesOnly(false);
+        setCandidateSearchText('');
         if (connectionLineRef.current && mapInstanceRef.current) {
           mapInstanceRef.current.removeLayer(connectionLineRef.current);
           connectionLineRef.current = null;
@@ -1795,9 +1799,11 @@
         // Place Candidate Marker using candidate-pin.png
         const candIcon = L.divIcon({
           html: `
-            <div class="relative cursor-pointer select-none flex flex-col items-center justify-center candidate-pin-glow">
-              <img src="./candidate-pin.png" class="w-9 h-9 object-contain filter drop-shadow-lg" alt="${cand.name}" />
-              <span class="w-2 h-2 rounded-full bg-emerald-600 ring-2 ring-white shadow -mt-1"></span>
+            <div class="relative cursor-pointer select-none flex flex-col items-center justify-center transition-transform hover:scale-110">
+              <div class="w-9 h-9 rounded-full bg-white border-2 border-stone-800 shadow-xl flex items-center justify-center p-1 candidate-pin-glow">
+                <img src="./candidate-pin.png" class="w-full h-full object-contain filter drop-shadow-sm" alt="${cand.name}" />
+              </div>
+              <span class="w-2 h-2 rounded-full bg-stone-900 ring-2 ring-white shadow -mt-1"></span>
             </div>
           `,
           className: 'custom-candidate-pin',
@@ -1811,7 +1817,7 @@
           <div class="px-1.5 py-1">
             <p class="font-bold text-stone-900 text-xs">${cand.name}</p>
             <p class="text-stone-600 text-[11px] font-medium">${cand.title}</p>
-            <p class="text-stone-500 text-[10px] mt-0.5">📍 ${cand.location} ${cand.distance !== null ? `(${cand.distance} ${unit} away)` : ''}</p>
+            <p class="text-stone-500 text-[10px] mt-0.5">📌 ${cand.location}</p>
             ${cand.company ? `<p class="text-stone-400 text-[9px]">${cand.company}</p>` : ''}
           </div>
         `, { direction: 'top', offset: [0, -24], opacity: 0.98, className: 'leaflet-popup-content-wrapper p-2' });
@@ -1828,13 +1834,11 @@
             opacity: 0.85
           }).addTo(map);
 
-          if (cand.distance !== null) {
-            line.bindTooltip(`↔️ ${cand.distance} ${unit}`, {
-              permanent: true,
-              direction: 'center',
-              className: 'distance-midpoint-tooltip'
-            });
-          }
+          line.bindTooltip(`↔️ Candidate in Area`, {
+            permanent: true,
+            direction: 'center',
+            className: 'distance-midpoint-tooltip'
+          });
           connectionLineRef.current = line;
 
           map.fitBounds([selectedJob.coords, cand.coords], { padding: [80, 80], maxZoom: 12 });
@@ -1848,7 +1852,7 @@
         const lines = [
           `Candidate: ${cand.name}`,
           `Role: ${cand.title}`,
-          `Location: ${cand.location}${cand.distance !== null && selectedJob ? ` (${cand.distance} ${unit} from ${selectedJob['Job Title']})` : ''}`,
+          `Location: ${cand.location}`,
           cand.company ? `Current Company: ${cand.company}` : '',
           cand.compensationTarget ? `Compensation Target: ${cand.compensationTarget}` : '',
           cand.industry ? `Industry: ${cand.industry}` : '',
@@ -2648,12 +2652,6 @@
                               <span className="text-stone-800 font-medium text-[11px]">{selectedJob.allLocations.join(' • ')}</span>
                             </div>
                           )}
-                          {selectedJob['Client Contact'] && (
-                            <div className="col-span-2 pt-1 border-t border-stone-200/50">
-                              <span className="text-stone-400 text-[10px] block">Client Contact</span>
-                              <span className="text-stone-800 font-medium">{selectedJob['Client Contact']}</span>
-                            </div>
-                          )}
                         </div>
 
                         {/* Fast Candidate Matching Action Bar */}
@@ -2672,13 +2670,13 @@
                             <button
                               onClick={() => {
                                 setFilterSimilarTitlesOnly(true);
-                                setCandidateRadius('ALL');
+                                setCandidateRadius('50');
                                 setDrawerTab('candidates');
                               }}
                               className="bg-white hover:bg-stone-50 text-stone-900 border border-stone-200 hover:border-stone-400 p-2 rounded-xl text-left font-medium transition shadow-sm flex items-center justify-between text-[11px]"
-                              title="Filter to candidates with matching titles or background"
+                              title="Filter to candidates with matching titles or background in this area"
                             >
-                              <span className="truncate">🎯 Similar Titles</span>
+                              <span className="truncate">🎯 Similar Titles (50 {unit})</span>
                               <span className="text-stone-400 text-[10px] shrink-0 ml-1">&rarr;</span>
                             </button>
 
@@ -2699,12 +2697,12 @@
                           <button
                             onClick={() => {
                               setFilterSimilarTitlesOnly(false);
-                              setCandidateRadius('ALL');
+                              setCandidateRadius('50');
                               setDrawerTab('candidates');
                             }}
                             className="w-full bg-stone-900 hover:bg-stone-800 text-white py-2 px-3 rounded-xl font-medium text-xs flex items-center justify-between transition shadow-sm"
                           >
-                            <span>View All {matchedCandidates.length} Candidates in Area</span>
+                            <span>View Candidates in Area (within 50 {unit})</span>
                             <span>&rarr;</span>
                           </button>
                         </div>
@@ -2813,13 +2811,6 @@
                                   </div>
 
                                   <div className="flex flex-col items-end gap-1 shrink-0">
-                                    {cand.distance !== null && (
-                                      <span className={`text-[10px] px-2 py-0.5 rounded-full font-semibold ${
-                                        isPinned ? 'bg-white/20 text-white' : 'bg-stone-100 text-stone-800 border border-stone-200'
-                                      }`}>
-                                        📍 {cand.distance} {unit} away
-                                      </span>
-                                    )}
                                     {cand.isTitleMatch && (
                                       <span className="text-[9px] bg-emerald-100 border border-emerald-300 text-emerald-800 px-1.5 py-0.2 rounded font-semibold">
                                         🎯 Role Match
@@ -2868,12 +2859,6 @@
                                   {cand.shift && (
                                     <p className={`text-[10px] ${isPinned ? 'text-stone-300' : 'text-stone-500'}`}>
                                       ⏱️ Shift: {cand.shift}
-                                    </p>
-                                  )}
-
-                                  {cand.submittedTo && (
-                                    <p className={`text-[10px] ${isPinned ? 'text-stone-300' : 'text-stone-500'}`}>
-                                      👤 Client Track: {cand.submittedTo} {cand.submittedOn ? `(${cand.submittedOn})` : ''}
                                     </p>
                                   )}
                                 </div>
@@ -3057,11 +3042,6 @@
                               <p className="text-stone-500 text-[10px]">⏱️ Shift: {cand.shift}</p>
                             )}
 
-                            {cand.submittedTo && (
-                              <p className="text-stone-500 text-[10px]">
-                                👤 Client Track: {cand.submittedTo} {cand.submittedOn ? `(${cand.submittedOn})` : ''}
-                              </p>
-                            )}
                           </div>
 
                           {/* Action Buttons */}
