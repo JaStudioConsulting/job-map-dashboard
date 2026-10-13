@@ -1,6 +1,6 @@
 # 🗺️ Top Tier Talent Group — Job Map & Proximity Radar
 
-An interactive, single-page web dashboard built for **Top Tier Talent Group** to visualize active job openings across Ontario and North America, calculate candidate commute proximity in real-time, and streamline recruiter candidate pitches.
+An interactive, single-page web dashboard built for **Top Tier Talent Group** to visualize active job openings across Ontario and North America, estimate straight-line distances from a recruiter-entered location, and streamline recruiter candidate pitches.
 
 * **Live URL:** [https://jastudioconsulting.github.io/job-map-dashboard/](https://jastudioconsulting.github.io/job-map-dashboard/)
 * **Recruiter Passcode:** `TTTG2026`
@@ -29,12 +29,20 @@ An interactive, single-page web dashboard built for **Top Tier Talent Group** to
 2. **Finding the Closest Roles to a Candidate:**
    - Start typing any candidate location (e.g. `80 Dalhousie`, `55 Mutual St, Toronto`, `Windsor`, `London, ON`, or postal code `N6A 1A1`).
    - **Uber-Style Autocomplete:** Live suggestions pop up as you type. Click any suggestion or use `↓`/`↑` and press `Enter`.
-   - The job list instantly re-ranks with nearest roles at the top and displays exact distance (`📍 12.4 km away`).
+   - The job list instantly re-ranks with nearest roles at the top and displays a straight-line distance estimate (`📍 12.4 km away`).
 3. **Filtering by Recruiter or Commute Radius:**
    - Filter by Recruiter owner (`Ja`, `Sarah`, `Candice`, `Lyn`, etc.).
    - Limit radius (`Within 25 km`, `50 km`, `100 km`, `250 km`).
    - Toggle between **km** and **mi**.
-4. **Copying Candidate Pitches:**
+4. **Reviewing Candidates for a Job:**
+   - Open a job, then choose **View candidate suggestions**.
+   - Suggestions prioritize matching roles, then similar roles or background, then shared industries. Generic seniority words alone do not establish a match.
+   - Candidate coordinates do not filter or rank suggestions. Candidates with unknown locations remain eligible; map locations are approximate.
+   - Use **Show** to filter by match type, or search the relevant candidate pool. Each card explains its matching basis.
+   - **Review submission email** opens the original email URL supplied in `Submission Link` (also accepts `Submission Email Link`, `Submission Email URL`, or `Email Link`). Cards show source client/date when supplied.
+   - A generic `Link` remains a profile link unless it is a recognized Gmail or Outlook email URL. Missing or invalid source-email links are shown as unavailable; the app never generates an email URL from a name.
+   - The candidate importer accepts the Tracker headers `Candidate Name`, `Current / Most Recent Title`, `Current / Most Recent Company`, `Client Submitted To`, `Submission Date`, `Profile Summary`, `Additional Notes`, and `License & Certifications` alongside existing dashboard headers. This does not configure a separate Tracker workbook automatically.
+5. **Copying Candidate Pitches:**
    - Click **📋 Copy Pitch** on any card or inside the detail drawer.
    - Automatically copies a formatted brief to your clipboard ready for candidate calls or emails.
 

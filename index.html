@@ -8,7 +8,7 @@
   <meta http-equiv="Pragma" content="no-cache" />
   <meta http-equiv="Expires" content="0" />
   <title>Top Tier Talent Group | Proximity Radar & Active Job Map</title>
-  
+
   <!-- Google Fonts: Inter & JetBrains Mono -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -327,6 +327,38 @@
       Number.isFinite(coords[0]) && Number.isFinite(coords[1]) && Math.abs(coords[0]) <= 90 && Math.abs(coords[1]) <= 180;
     const escapeHtml = value => String(value ?? '').replace(/[&<>"']/g, char => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;', "'":'&#39;'}[char]));
 
+    const safeReviewUrl = value => {
+      try {
+        const url = new URL(String(value || '').trim());
+        return ['https:', 'http:'].includes(url.protocol) ? url.href : '';
+      } catch { return ''; }
+    };
+    function getCandidateLinks(row) {
+      const explicit = row['Submission Email Link'] || row['Submission Email URL'] || row['Email Link'] || row['Submission Link'] || row.submissionLink;
+      const generic = safeReviewUrl(row['Link']);
+      const isMail = generic && /^(?:mail\.google\.com|outlook\.(?:office\.com|office365\.com|live\.com|cloud\.microsoft))$/.test(new URL(generic).hostname);
+      return {
+        submissionLink: safeReviewUrl(explicit) || (isMail ? generic : ''),
+        profileLink: safeReviewUrl(row['Profile Link'] || row.profileLink) || (!isMail ? generic : '')
+      };
+    }
+    function CandidateSubmissionLink({ candidate }) {
+      return (
+        <div className="mt-2 space-y-1 text-[11px]">
+          {candidate.submittedTo && <p>Submitted to: {candidate.submittedTo}</p>}
+          {candidate.submittedOn && <p>Submitted on: {candidate.submittedOn}</p>}
+          {candidate.submissionLink ? (
+            <a href={candidate.submissionLink} target="_blank" rel="noopener noreferrer"
+              className="inline-flex items-center gap-1 font-semibold text-blue-500 hover:underline">
+              ✉ Review submission email ↗
+            </a>
+          ) : <p className="text-stone-400">Submission email link not provided</p>}
+          {candidate.profileLink && <a href={candidate.profileLink} target="_blank" rel="noopener noreferrer"
+            className="block text-blue-500 hover:underline">View profile ↗</a>}
+        </div>
+      );
+    }
+
     // --- BUILT-IN COORDINATE DICTIONARY ---
     const CITY_COORDINATES = {
       // Ontario
@@ -612,29 +644,84 @@
       }
     ];
 
-    // Helper: Smart Title / Keyword Matching for Candidates & Jobs
-    function isSimilarTitle(jobTitle = '', candTitle = '', candNotes = '', candIndustry = '') {
-      const clean = (str) => (str || '').toLowerCase().replace(/[^a-z0-9\s]/g, ' ');
-      const jClean = clean(jobTitle);
-      const cClean = `${clean(candTitle)} ${clean(candNotes)} ${clean(candIndustry)}`;
-
-      const stems = [
-        'weld', 'mold', 'mould', 'machin', 'electric', 'electri', 'mechan', 'technician', 'millwright',
-        'tool', 'die', 'assembl', 'fitter', 'fabricat', 'supervisor', 'manager', 'director',
-        'lead', 'operator', 'engineer', 'quality', 'safety', 'cnc', 'hydraul', 'pneumat',
-        'maintenance', 'service', 'dispatch', 'coordinator', 'purchas', 'buyer', 'procure',
-        'inventory', 'supply chain', 'account', 'sales', 'business develop', 'marketing',
-        'driver', 'truck', 'fleet', 'transit', 'production', 'plant', 'chemist', 'labor'
-      ];
-
-      for (const stem of stems) {
-        if (jClean.includes(stem) && cClean.includes(stem)) {
-          return true;
-        }
+    // Conservative role families: specific trades take precedence over generic job words.
+    const ROLE_PROFILES = [
+      {id:'welding', label:'welding', pattern:/\b(?:welders?|welding|weldors?)\b/, related:['fabrication','pipefitting','machining','mechanical']},
+      {id:'mould', label:'mould making', pattern:/\b(?:mou?ld(?:ing)?|mou?ldmakers?)\b/, related:['tooling','machining','fabrication']},
+      {id:'tooling', label:'tool and die', pattern:/\b(?:tool(?:ing|makers?)?|die)\b/, related:['mould','machining','fabrication']},
+      {id:'machining', label:'machining', pattern:/\b(?:machinists?|machining|cnc|boring mill|lathe|milling)\b/, related:['tooling','mould','fabrication','welding']},
+      {id:'fabrication', label:'fabrication', pattern:/\b(?:fabricators?|fabrication|sheet metal|metal workers?)\b/, related:['welding','pipefitting','machining']},
+      {id:'pipefitting', label:'pipefitting', pattern:/\b(?:pipe\s?fitters?|steam\s?fitters?|plumb(?:er|ing)s?)\b/, related:['welding','fabrication','mechanical']},
+      {id:'electrical', label:'electrical trades', pattern:/\b(?:electricians?|electrical|electromechanical|electro mechanical)\b/, related:['mechanical','electronics','automation']},
+      {id:'electronics', label:'electronics', pattern:/\b(?:electronics?|smt|pcb)\b/, related:['electrical','automation','engineering']},
+      {id:'automation', label:'automation', pattern:/\b(?:automation|robotics?|plc|controls?)\b/, related:['electrical','electronics','mechanical']},
+      {id:'mechanical', label:'mechanical maintenance', pattern:/\b(?:mechanics?|mechanical|millwrights?|maintenance technicians?)\b/, related:['electrical','automation','pipefitting','welding']},
+      {id:'accounting', label:'accounting', pattern:/\b(?:accountants?|accounting|bookkeepers?|bookkeeping|payroll|accounts payable|accounts receivable)\b/, related:['finance']},
+      {id:'finance', label:'finance', pattern:/\b(?:financial|finance|controllers?|treasury|auditors?|audit)\b/, related:['accounting']},
+      {id:'logistics', label:'logistics', pattern:/\b(?:logistics|dispatch(?:ers?)?|supply chain|warehouse|inventory)\b/, related:['driving','procurement']},
+      {id:'procurement', label:'procurement', pattern:/\b(?:procurement|purchasing|buyers?)\b/, related:['logistics']},
+      {id:'driving', label:'driving', pattern:/\b(?:drivers?|trucking|truck drivers?)\b/, related:['logistics']},
+      {id:'sales', label:'sales', pattern:/\b(?:sales|account executives?|business development)\b/, related:['marketing']},
+      {id:'marketing', label:'marketing', pattern:/\b(?:marketing|communications?|advertising)\b/, related:['sales']},
+      {id:'quality', label:'quality', pattern:/\b(?:quality|inspection|inspectors?)\b/, related:['engineering','production']},
+      {id:'production', label:'production', pattern:/\b(?:production|assembly|assemblers?|machine operators?)\b/, related:['quality','machining','fabrication']},
+      {id:'engineering', label:'engineering', pattern:/\b(?:engineers?|engineering)\b/, related:['quality','automation','electronics']}
+    ];
+    const INDUSTRY_PROFILES = [
+      {label:'metalworking', pattern:/\b(?:metal(?:s|working)?|steel|fabrication|machining|tool and die)\b/},
+      {label:'manufacturing', pattern:/\b(?:manufacturing|manufacturer|industrial production)\b/},
+      {label:'automotive', pattern:/\b(?:automotive|automobile|vehicles?|auto parts)\b/},
+      {label:'aerospace', pattern:/\b(?:aerospace|aviation|aircraft)\b/},
+      {label:'food and beverage', pattern:/\b(?:food|beverage|bakery|baking)\b/},
+      {label:'construction', pattern:/\b(?:construction|building materials|civil infrastructure)\b/},
+      {label:'logistics', pattern:/\b(?:logistics|transportation|warehousing|freight)\b/},
+      {label:'electronics', pattern:/\b(?:electronics|semiconductors?|smt|pcb)\b/},
+      {label:'healthcare', pattern:/\b(?:healthcare|health care|medical|hospital|pharmaceutical)\b/},
+      {label:'financial services', pattern:/\b(?:financial services|banking|credit union|insurance)\b/},
+      {label:'retail', pattern:/\b(?:retail|e commerce|ecommerce)\b/},
+      {label:'hospitality', pattern:/\b(?:hospitality|hotels?|restaurants?)\b/},
+      {label:'energy', pattern:/\b(?:energy|oil and gas|utilities|renewables)\b/},
+      {label:'software', pattern:/\b(?:software|saas|information technology)\b/}
+    ];
+    const normalizeMatchText = value => String(value || '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
+    const titleProfiles = title => {
+      const found = ROLE_PROFILES.filter(profile => profile.pattern.test(normalizeMatchText(title)));
+      const businessRoles = found.filter(profile => ['sales','marketing','procurement','accounting','finance'].includes(profile.id));
+      if (businessRoles.length) return businessRoles;
+      return found.some(profile => profile.id !== 'engineering') ? found.filter(profile => profile.id !== 'engineering') : found;
+    };
+    function getCandidateRelevance(job, cand) {
+      const jobTitle = normalizeMatchText(job['Job Title']);
+      const candTitle = normalizeMatchText(cand.title);
+      if (jobTitle && candTitle && jobTitle === candTitle) {
+        return {matchTier:0, matchLabel:'Role match', matchReason:'Same job title'};
       }
-
-      const jWords = jClean.split(/\s+/).filter(w => w.length >= 4);
-      return jWords.some(w => cClean.includes(w));
+      const jobRoles = titleProfiles(jobTitle);
+      const candidateRoles = titleProfiles(candTitle);
+      const shared = jobRoles.find(role => candidateRoles.some(other => other.id === role.id));
+      if (shared) {
+        const engineeringMismatch = /\bengineer(?:ing)?s?\b/.test(jobTitle) !== /\bengineer(?:ing)?s?\b/.test(candTitle);
+        return engineeringMismatch
+          ? {matchTier:1, matchLabel:'Similar role', matchReason:`Related technical field: ${shared.label}`}
+          : {matchTier:0, matchLabel:'Role match', matchReason:`Title indicates ${shared.label}`};
+      }
+      // Support unlisted titles without treating generic seniority words as a profession.
+      const generic = new Set(['senior','junior','lead','manager','supervisor','director','technician','specialist','operator','assistant','associate','staff','worker','general','chief','head','and','of','the']);
+      const titleTerms = jobTitle.split(' ').filter(word => word.length > 2 && !generic.has(word));
+      if (!jobRoles.length && titleTerms.length && titleTerms.every(word => candTitle.split(' ').includes(word))) {
+        return {matchTier:0, matchLabel:'Role match', matchReason:'Job title keywords match'};
+      }
+      const related = jobRoles.find(role => candidateRoles.some(other => role.related.includes(other.id)));
+      if (related) return {matchTier:1, matchLabel:'Similar role', matchReason:`Related trade or role: ${candidateRoles.find(other => related.related.includes(other.id)).label}`};
+      // Explicit background can suggest a role but never promotes an unrelated current title to a role match.
+      const background = normalizeMatchText(`${cand.notes || ''} ${cand.licenses || ''}`);
+      const backgroundRole = jobRoles.find(role => role.pattern.test(background));
+      if (backgroundRole) return {matchTier:1, matchLabel:'Related background', matchReason:`Notes or certifications mention ${backgroundRole.label}`};
+      const jobIndustry = normalizeMatchText(`${job['Industry'] || ''} ${job['Job Description'] || ''}`);
+      const candidateIndustry = normalizeMatchText(cand.industry);
+      const sector = INDUSTRY_PROFILES.find(profile => profile.pattern.test(jobIndustry) && profile.pattern.test(candidateIndustry));
+      if (sector) return {matchTier:2, matchLabel:'Related industry', matchReason:`Shared industry: ${sector.label}`};
+      return null;
     }
 
     // --- HAVERSINE DISTANCE FORMULA ---
@@ -743,7 +830,7 @@
       } catch (e) {}
 
       const cleaned = locationStr.toLowerCase().replace(/[^\w\s,]/g, '').trim();
-      
+
       // 2. Exact match in built-in city coordinates
       if (CITY_COORDINATES[cleaned]) {
         return { latLng: CITY_COORDINATES[cleaned], resolvedName: locationStr, isExact: false };
@@ -764,7 +851,7 @@
       return new Promise((resolve, reject) => {
         const callbackName = 'sheetCallback_' + Math.round(100000 * Math.random());
         const script = document.createElement('script');
-        
+
         window[callbackName] = function(data) {
           try {
             delete window[callbackName];
@@ -778,7 +865,8 @@
               const obj = {};
               headers.forEach((h, idx) => {
                 const cell = r.c && r.c[idx];
-                obj[h] = cell && cell.v !== null && cell.v !== undefined ? String(cell.v) : (cell && cell.f ? String(cell.f) : '');
+                obj[h] = cell && cell.f && /(?:date|submitted on)/i.test(h) ? String(cell.f)
+                  : cell && cell.v !== null && cell.v !== undefined ? String(cell.v) : (cell && cell.f ? String(cell.f) : '');
               });
               return obj;
             });
@@ -875,11 +963,10 @@
       }, []);
       const [copiedId, setCopiedId] = useState(null);
 
-      // Candidates & Proximity Matching State
+      // Candidates & Role Matching State
       const [candidates, setCandidates] = useState([]);
       const [pinnedCandidateId, setPinnedCandidateId] = useState(null);
-      const [candidateRadius, setCandidateRadius] = useState('50'); // Default within 50 km/mi of job
-      const [filterSimilarTitlesOnly, setFilterSimilarTitlesOnly] = useState(false);
+      const [candidateMatchScope, setCandidateMatchScope] = useState('relevant');
       const [drawerTab, setDrawerTab] = useState('role'); // 'role' | 'candidates'
       const [candidateSearchText, setCandidateSearchText] = useState('');
       const [userLocation, setUserLocation] = useState(null);
@@ -1066,19 +1153,19 @@
       // Enrich and normalize candidates
       const enrichCandidates = (rawRows) => {
         return rawRows.map((cand, idx) => {
-          const name = (cand['Candidate Name'] || cand['Candidates Candidate Name'] || cand['Name'] || '').trim();
-          const title = (cand['Current Title'] || cand['Title'] || '').trim();
-          const loc = (cand['Location'] || '').trim();
-          const company = (cand['Current Company'] || '').trim();
-          const industry = (cand['Industry'] || '').trim();
-          const compTarget = (cand['Compensation Target'] || '').trim();
-          const compCurrent = (cand['Current Compensation'] || '').trim();
-          const notes = (cand['Notes'] || '').trim();
-          const shift = (cand['Shift'] || '').trim();
-          const submittedTo = (cand['Submitted To'] || '').trim();
-          const submittedOn = (cand['Submitted On'] || '').trim();
-          const link = (cand['Submission Link'] || cand['Link'] || '').trim();
-          const licenses = (cand['Licenses'] || cand['Certifications'] || '').trim();
+          const name = (cand['Candidate Name'] || cand['Candidates Candidate Name'] || cand['Name'] || cand.name || '').trim();
+          const title = (cand['Current Title'] || cand['Current / Most Recent Title'] || cand['Title'] || cand.title || '').trim();
+          const loc = (cand['Location'] || cand.location || '').trim();
+          const company = (cand['Current Company'] || cand['Current / Most Recent Company'] || cand.company || '').trim();
+          const industry = (cand['Industry'] || cand.industry || '').trim();
+          const compTarget = (cand['Compensation Target'] || cand['Target Compensation / Current Rate'] || cand.compensationTarget || '').trim();
+          const compCurrent = (cand['Current Compensation'] || cand.currentCompensation || '').trim();
+          const notes = [cand['Notes'] || cand.notes, cand['Profile Summary'], cand['Additional Notes']].filter(Boolean).join(' | ').trim();
+          const shift = (cand['Shift'] || cand.shift || '').trim();
+          const submittedTo = (cand['Submitted To'] || cand['Client Submitted To'] || cand.submittedTo || '').trim();
+          const submittedOn = (cand['Submitted On'] || cand['Submission Date'] || cand.submittedOn || '').trim();
+          const links = getCandidateLinks(cand);
+          const licenses = (cand['Licenses'] || cand['License & Certifications'] || cand['Certifications'] || cand.licenses || '').trim();
 
           const coordData = resolveCoordinates(loc);
 
@@ -1095,7 +1182,7 @@
             shift,
             submittedTo,
             submittedOn,
-            submissionLink: link,
+            ...links,
             licenses,
             coords: coordData ? coordData.latLng : null
           };
@@ -1109,7 +1196,7 @@
         try {
           let activeJobs = [];
           let loadedCandidates = [];
-          
+
           // A. Fetch Jobs
           try {
             const rawRows = await fetchSheetViaJSONP('1RexJFAEWRwNjzeGThutrA0zMObu2g4r3q0Vu0uiDbQs', 'Jobs');
@@ -1140,7 +1227,7 @@
               console.warn('Candidates CSV fetch fallback:', cFetchErr);
             }
           }
-          
+
           if (activeJobs.length === 0) {
             throw new Error('No active jobs found.');
           }
@@ -1448,7 +1535,7 @@
                   if (Array.isArray(data) && data.length > 0) {
                     coords = [parseFloat(data[0].lat), parseFloat(data[0].lon)];
                     displayName = data[0].display_name.split(',').slice(0, 3).join(',').trim();
-                    
+
                     // Save to persistent cache
                     try {
                       const cache = JSON.parse(localStorage.getItem('tttg_geo_cache') || '{}');
@@ -1555,12 +1642,12 @@
                 data.features.forEach(feat => {
                   const props = feat.properties || {};
                   const coords = [feat.geometry.coordinates[1], feat.geometry.coordinates[0]]; // lat, lon
-                  
+
                   let main = props.name || props.street || props.city || query;
                   if (props.housenumber && props.street) {
                     main = `${props.housenumber} ${props.street}`;
                   }
-                  
+
                   const subParts = [props.city || props.district || props.locality, props.state, props.country].filter(Boolean);
                   const secondary = subParts.join(', ');
                   const fullName = `${main}, ${secondary}`;
@@ -1740,8 +1827,7 @@
         setSelectedJob(job);
         setPinnedCandidateId(null);
         setDrawerTab('role');
-        setCandidateRadius('50');
-        setFilterSimilarTitlesOnly(false);
+        setCandidateMatchScope('relevant');
         setCandidateSearchText('');
         if (connectionLineRef.current && mapInstanceRef.current) {
           mapInstanceRef.current.removeLayer(connectionLineRef.current);
@@ -1764,49 +1850,25 @@
         }
       };
 
-      // Matched candidates for the selected job, ranked by distance to this job
+      // Rank by role evidence, never by coordinates or distance. Unknown locations remain eligible.
       const matchedCandidates = useMemo(() => {
-        if (!selectedJob || !selectedJob.coords) return [];
-        const [jobLat, jobLng] = selectedJob.coords;
-
+        if (!selectedJob) return [];
         return spreadCandidates
           .map(cand => {
-            let dist = null;
-            if (cand.coords) {
-              dist = calculateDistance(jobLat, jobLng, cand.coords[0], cand.coords[1], unit);
-            }
-            const isMatch = isSimilarTitle(selectedJob['Job Title'], cand.title, cand.notes, cand.industry);
-            return {
-              ...cand,
-              distance: dist,
-              isTitleMatch: isMatch
-            };
+            const relevance = getCandidateRelevance(selectedJob, cand);
+            return relevance ? { ...cand, ...relevance } : null;
           })
           .filter(cand => {
-            // Radius filter
-            if (candidateRadius !== 'ALL') {
-              const maxR = parseFloat(candidateRadius);
-              if (cand.distance === null || cand.distance > maxR) return false;
-            }
-            // Title filter
-            if (filterSimilarTitlesOnly && !cand.isTitleMatch) {
-              return false;
-            }
-            // Search text filter
-            if (candidateSearchText.trim()) {
-              const q = candidateSearchText.toLowerCase().trim();
-              const fullText = `${escapeHtml(cand.name)} ${escapeHtml(cand.title)} ${escapeHtml(cand.location)} ${escapeHtml(cand.company)} ${cand.notes} ${cand.industry}`.toLowerCase();
-              if (!fullText.includes(q)) return false;
-            }
-            return true;
+            if (!cand) return false;
+            if (candidateMatchScope === 'role' && cand.matchTier !== 0) return false;
+            if (candidateMatchScope === 'similar' && cand.matchTier !== 1) return false;
+            if (candidateMatchScope === 'industry' && cand.matchTier !== 2) return false;
+            const query = candidateSearchText.toLowerCase().trim();
+            const text = `${cand.name} ${cand.title} ${cand.location} ${cand.company} ${cand.notes} ${cand.industry}`.toLowerCase();
+            return !query || text.includes(query);
           })
-          .sort((a, b) => {
-            if (a.distance !== null && b.distance !== null) return a.distance - b.distance;
-            if (a.distance !== null) return -1;
-            if (b.distance !== null) return 1;
-            return 0;
-          });
-      }, [selectedJob, spreadCandidates, candidateRadius, filterSimilarTitlesOnly, candidateSearchText, unit]);
+          .sort((a, b) => a.matchTier - b.matchTier || a.name.localeCompare(b.name));
+      }, [selectedJob, spreadCandidates, candidateMatchScope, candidateSearchText]);
 
       // Candidates inside the selected candidate city cluster, filtered by city text search
       const filteredCityCandidates = useMemo(() => {
@@ -1829,7 +1891,7 @@
         return list;
       }, [selectedCandidateGroup, candidateCityFilterText]);
 
-      // Pin a candidate on the map and draw connection line to the current job
+      // Show the approximate reported candidate location without a proximity claim
       const handlePinCandidateOnMap = (cand) => {
         const map = mapInstanceRef.current;
         const targetCoords = cand.spreadCoords || cand.coords;
@@ -1859,26 +1921,7 @@
         candMarker.addTo(map);
         candidateMarkersRef.current[cand.id] = candMarker;
 
-        // Draw connecting polyline between job and candidate spread position
-        if (selectedJob && selectedJob.coords) {
-          const line = L.polyline([selectedJob.coords, targetCoords], {
-            color: '#1C1916',
-            weight: 2.5,
-            dashArray: '6, 8',
-            opacity: 0.85
-          }).addTo(map);
-
-          line.bindTooltip(`↔️ Candidate in Area`, {
-            permanent: true,
-            direction: 'center',
-            className: 'distance-midpoint-tooltip'
-          });
-          connectionLineRef.current = line;
-
-          map.fitBounds([selectedJob.coords, targetCoords], { padding: [80, 80], maxZoom: 12 });
-        } else {
-          map.setView(targetCoords, Math.max(map.getZoom(), 14));
-        }
+        map.setView(targetCoords, Math.max(map.getZoom(), 12));
       };
 
       // Copy candidate pitch summary
@@ -1891,7 +1934,8 @@
           cand.compensationTarget ? `Compensation Target: ${cand.compensationTarget}` : '',
           cand.industry ? `Industry: ${cand.industry}` : '',
           cand.notes ? `Notes / Focus: ${cand.notes}` : '',
-          cand.submissionLink ? `Profile Link: ${cand.submissionLink}` : ''
+          cand.submissionLink ? `Submission email: ${cand.submissionLink}` : '',
+          cand.profileLink ? `Profile: ${cand.profileLink}` : ''
         ].filter(Boolean);
 
         const pitch = lines.join('\n');
@@ -1957,10 +2001,10 @@
       }, [selectedJob]);
 
       const copyJobPitch = (job) => {
-        const otherSites = job.isMultiLocation && job.allLocations 
+        const otherSites = job.isMultiLocation && job.allLocations
           ? ` (Site ${job.locationIndex} of ${job.totalLocations} - Other sites: ${job.allLocations.filter(l => l !== job.displayLocation).join(', ')})`
           : '';
-        const text = `📌 Role: ${escapeHtml(job['Job Title'])}\n🏢 Company: ${escapeHtml(job['Company'])}\n📍 Location: ${job['displayLocation']}${otherSites}\n💰 Comp: ${job['Compensation'] || 'Competitive'}\n👤 Recruiter: ${job['Owners']}\n\nOverview:\n${job['Job Description']?.slice(0, 350)}...`;
+        const text = `📌 Role: ${job['Job Title']}\n🏢 Company: ${job['Company']}\n📍 Location: ${job['displayLocation']}${otherSites}\n💰 Comp: ${job['Compensation'] || 'Competitive'}\n👤 Recruiter: ${job['Owners']}\n\nOverview:\n${job['Job Description']?.slice(0, 350)}...`;
         navigator.clipboard.writeText(text);
         setCopiedId(job.id);
         setTimeout(() => setCopiedId(null), 2500);
@@ -1971,7 +2015,7 @@
         return (
           <div className="flex items-center justify-center min-h-screen bg-[#FBF9F5] p-4 font-sans">
             <div className="w-full max-w-md bg-white border border-stone-200 rounded-3xl p-8 shadow-xl shadow-stone-200/50 text-center space-y-6">
-              
+
               <div className="w-14 h-14 bg-stone-100 border border-stone-200 rounded-2xl mx-auto flex items-center justify-center text-2xl shadow-sm text-stone-800">
                 🔒
               </div>
@@ -2027,7 +2071,7 @@
 
       return (
         <div className="flex flex-col h-screen w-screen overflow-hidden bg-[#FAF9F6] font-sans text-stone-900">
-          
+
           {/* EXECUTIVE HEADER */}
           <header className="h-16 border-b border-stone-200 bg-white/90 backdrop-blur px-4 lg:px-6 flex items-center justify-between shrink-0 z-30">
             <div className="flex items-center gap-3">
@@ -2087,7 +2131,7 @@
           {/* SEARCH & FILTERS BAR */}
           <div className="border-b border-stone-200 bg-stone-50/70 p-3 shrink-0 z-20">
             <div className="max-w-7xl mx-auto flex flex-wrap items-center gap-2 sm:gap-3">
-              
+
               {/* Proximity Location Input + Uber-Style Autocomplete */}
               <div ref={searchBoxRef} className="flex-1 min-w-[280px] relative">
                 <form onSubmit={handleLocationSearch} className="w-full flex items-center relative">
@@ -2252,7 +2296,7 @@
               {/* Region Filter Checkboxes (Plain iOS Style from Uiverse.io) */}
               <div className="checkbox-container">
                 <span className="text-[10px] font-mono uppercase tracking-wider text-stone-400 font-semibold mr-0.5">Region:</span>
-                
+
                 <label className="ios-checkbox">
                   <input
                     type="checkbox"
@@ -2364,7 +2408,7 @@
               }}
               className={`border-r border-stone-200 bg-[#FAF9F6] flex flex-col shrink-0 overflow-hidden ${activeTab !== 'list' ? 'hidden lg:flex' : 'flex'}`}
             >
-              
+
               {/* List Header */}
               <div className="p-3 bg-white border-b border-stone-200 flex items-center justify-between text-xs text-stone-500">
                 <span>Showing <b>{processedJobs.length}</b> Active Roles</span>
@@ -2586,7 +2630,7 @@
               {/* SLIDE-OUT DETAIL DRAWER (ROLES & CANDIDATE MATCHING) */}
               {selectedJob && (
                 <div className="absolute top-4 left-4 right-4 sm:right-auto sm:w-[460px] max-h-[88%] bg-white/95 border border-stone-200 rounded-3xl shadow-2xl backdrop-blur z-30 flex flex-col overflow-hidden animate-in fade-in duration-150">
-                  
+
                   {/* Drawer Header */}
                   <div className="p-4 border-b border-stone-100 flex items-start justify-between bg-stone-50/50 shrink-0">
                     <div className="flex-1 pr-2">
@@ -2594,7 +2638,7 @@
                         <span className="text-[10px] font-mono uppercase tracking-wider text-stone-400 font-bold">Job Card</span>
                         {matchedCandidates.length > 0 && (
                           <span className="bg-stone-900 text-white text-[10px] px-2 py-0.5 rounded-full font-semibold">
-                            🎯 {matchedCandidates.length} in Area
+                            🎯 {matchedCandidates.length} suggestion{matchedCandidates.length !== 1 ? 's' : ''}
                           </span>
                         )}
                       </div>
@@ -2629,7 +2673,7 @@
                           : 'border-transparent text-stone-400 hover:text-stone-700'
                       }`}
                     >
-                      <span>🎯 Candidates in Area</span>
+                      <span>🎯 Candidate suggestions</span>
                       <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold ${drawerTab === 'candidates' ? 'bg-stone-900 text-white' : 'bg-stone-100 text-stone-600'}`}>
                         {matchedCandidates.length}
                       </span>
@@ -2638,7 +2682,7 @@
 
                   {/* Drawer Content */}
                   <div className="p-4 overflow-y-auto space-y-3.5 text-xs text-stone-700 flex-1 custom-scrollbar">
-                    
+
                     {drawerTab === 'role' ? (
                       <>
                         {/* Key Specs */}
@@ -2672,56 +2716,16 @@
                           )}
                         </div>
 
-                        {/* Fast Candidate Matching Action Bar */}
+                        {/* Role-first candidate suggestions */}
                         <div className="bg-stone-100/90 p-3 rounded-2xl border border-stone-200/90 space-y-2">
                           <div className="flex items-center justify-between text-xs">
-                            <span className="font-semibold text-stone-900 flex items-center gap-1.5">
-                              <span>🎯</span>
-                              <span>Candidate Matches in Area</span>
-                            </span>
-                            <span className="bg-stone-900 text-white text-[10px] px-2 py-0.5 rounded-full font-bold">
-                              {matchedCandidates.length} found
-                            </span>
+                            <span className="font-semibold text-stone-900">🎯 Candidate suggestions</span>
+                            <span className="bg-stone-900 text-white text-[10px] px-2 py-0.5 rounded-full font-bold">{matchedCandidates.length} found</span>
                           </div>
-
-                          <div className="grid grid-cols-2 gap-1.5 pt-0.5">
-                            <button
-                              onClick={() => {
-                                setFilterSimilarTitlesOnly(true);
-                                setCandidateRadius('50');
-                                setDrawerTab('candidates');
-                              }}
-                              className="bg-white hover:bg-stone-50 text-stone-900 border border-stone-200 hover:border-stone-400 p-2 rounded-xl text-left font-medium transition shadow-sm flex items-center justify-between text-[11px]"
-                              title="Filter to candidates with matching titles or background in this area"
-                            >
-                              <span className="truncate">🎯 Similar Titles (50 {unit})</span>
-                              <span className="text-stone-400 text-[10px] shrink-0 ml-1">&rarr;</span>
-                            </button>
-
-                            <button
-                              onClick={() => {
-                                setFilterSimilarTitlesOnly(false);
-                                setCandidateRadius('25');
-                                setDrawerTab('candidates');
-                              }}
-                              className="bg-white hover:bg-stone-50 text-stone-900 border border-stone-200 hover:border-stone-400 p-2 rounded-xl text-left font-medium transition shadow-sm flex items-center justify-between text-[11px]"
-                              title="Filter to candidates within 25 km of this job"
-                            >
-                              <span className="truncate">📍 Within 25 {unit}</span>
-                              <span className="text-stone-400 text-[10px] shrink-0 ml-1">&rarr;</span>
-                            </button>
-                          </div>
-
-                          <button
-                            onClick={() => {
-                              setFilterSimilarTitlesOnly(false);
-                              setCandidateRadius('50');
-                              setDrawerTab('candidates');
-                            }}
-                            className="w-full bg-stone-900 hover:bg-stone-800 text-white py-2 px-3 rounded-xl font-medium text-xs flex items-center justify-between transition shadow-sm"
-                          >
-                            <span>View Candidates in Area (within 50 {unit})</span>
-                            <span>&rarr;</span>
+                          <p className="text-[11px] text-stone-600">Role matches first, then similar roles and related industries. Locations are approximate.</p>
+                          <button onClick={() => { setCandidateMatchScope('relevant'); setDrawerTab('candidates'); }}
+                            className="w-full bg-stone-900 hover:bg-stone-800 text-white py-2 px-3 rounded-xl font-medium text-xs flex items-center justify-between transition shadow-sm">
+                            <span>View candidate suggestions</span><span>&rarr;</span>
                           </button>
                         </div>
 
@@ -2742,38 +2746,24 @@
                         </div>
                       </>
                     ) : (
-                      /* CANDIDATES IN AREA TAB */
+                      /* CANDIDATE SUGGESTIONS TAB */
                       <div className="space-y-3">
                         {/* Candidate Filter Bar */}
                         <div className="bg-stone-50 p-3 rounded-2xl border border-stone-200/80 space-y-2">
                           <div className="flex flex-wrap items-center justify-between gap-2">
-                            {/* Radius selector */}
-                            <div className="flex items-center gap-1.5">
-                              <span className="text-stone-500 text-[11px] font-medium">Radius:</span>
-                              <select
-                                value={candidateRadius}
-                                onChange={(e) => setCandidateRadius(e.target.value)}
-                                className="bg-white border border-stone-200 text-stone-900 font-semibold text-xs rounded-lg px-2 py-1 focus:outline-none cursor-pointer shadow-sm"
-                              >
-                                <option value="ALL">Any Distance</option>
-                                <option value="25">Within 25 {unit}</option>
-                                <option value="50">Within 50 {unit}</option>
-                                <option value="100">Within 100 {unit}</option>
-                                <option value="250">Within 250 {unit}</option>
+                            <label className="flex items-center gap-1.5 text-[11px] text-stone-700 font-medium">
+                              <span>Show:</span>
+                              <select aria-label="Candidate match type" value={candidateMatchScope}
+                                onChange={(e) => setCandidateMatchScope(e.target.value)}
+                                className="bg-white border border-stone-200 text-stone-900 font-semibold text-xs rounded-lg px-2 py-1 focus:outline-none cursor-pointer shadow-sm">
+                                <option value="relevant">Role + related matches</option>
+                                <option value="role">Role matches only</option>
+                                <option value="similar">Similar roles / background</option>
+                                <option value="industry">Related industry only</option>
                               </select>
-                            </div>
-
-                            {/* Title match toggle */}
-                            <label className="flex items-center gap-1.5 text-[11px] text-stone-700 font-medium cursor-pointer select-none">
-                              <input
-                                type="checkbox"
-                                checked={filterSimilarTitlesOnly}
-                                onChange={(e) => setFilterSimilarTitlesOnly(e.target.checked)}
-                                className="rounded text-stone-900 focus:ring-0 cursor-pointer"
-                              />
-                              <span>Similar Roles Only</span>
                             </label>
                           </div>
+                          <p className="text-[11px] text-stone-600">Sorted by role relevance. Candidate locations are approximate; no distance filter is applied.</p>
 
                           {/* Quick Candidate Filter Input */}
                           <div className="relative">
@@ -2802,7 +2792,7 @@
                             <p className="text-2xl">🎯</p>
                             <p className="text-sm font-semibold text-stone-800">No candidates match these criteria</p>
                             <p className="text-xs text-stone-500">
-                              Try expanding the radius to "Any Distance" or unchecking "Similar Roles Only".
+                              Try clearing the search or choosing "Role + related matches". Candidates with no relevant role or industry evidence are excluded.
                             </p>
                           </div>
                         ) : (
@@ -2811,6 +2801,7 @@
                             return (
                               <div
                                 key={cand.id}
+                                data-candidate-id={cand.id}
                                 className={`p-3.5 rounded-2xl border transition-all ${
                                   isPinned
                                     ? 'bg-stone-900 text-white border-stone-900 shadow-md ring-1 ring-stone-900'
@@ -2829,19 +2820,18 @@
                                   </div>
 
                                   <div className="flex flex-col items-end gap-1 shrink-0">
-                                    {cand.isTitleMatch && (
-                                      <span className="text-[9px] bg-emerald-100 border border-emerald-300 text-emerald-800 px-1.5 py-0.2 rounded font-semibold">
-                                        🎯 Role Match
-                                      </span>
-                                    )}
+                                    <span title={cand.matchReason} className="text-[9px] bg-emerald-100 border border-emerald-300 text-emerald-800 px-1.5 py-0.2 rounded font-semibold">
+                                      {cand.matchLabel}
+                                    </span>
                                   </div>
                                 </div>
 
-                                {/* Zero-Clutter Details: ONLY render non-empty fields */}
+                                <p className={`mt-2 text-[10px] ${isPinned ? 'text-stone-300' : 'text-stone-500'}`}>{cand.matchReason}</p>
+                                {/* Render reported data, with no distance claims. */}
                                 <div className="mt-2 space-y-1 text-[11px]">
                                   <div className={`flex items-center gap-1 ${isPinned ? 'text-stone-300' : 'text-stone-600'}`}>
                                     <span>📌</span>
-                                    <span className="font-medium">{cand.location}</span>
+                                    <span className="font-medium">Reported location: {cand.location || 'Not provided'}</span>
                                   </div>
 
                                   {cand.company && (
@@ -2881,12 +2871,15 @@
                                   )}
                                 </div>
 
+                                <CandidateSubmissionLink candidate={cand} />
                                 {/* Actions Row */}
                                 <div className={`mt-2.5 pt-2 border-t flex items-center justify-between text-xs ${
                                   isPinned ? 'border-white/15' : 'border-stone-100'
                                 }`}>
                                   <button
                                     onClick={() => handlePinCandidateOnMap(cand)}
+                                    disabled={!validCoords(cand.coords)}
+                                    title={validCoords(cand.coords) ? 'Show approximate reported location' : 'No reported location available'}
                                     className={`px-2.5 py-1 rounded-lg font-medium text-[11px] transition flex items-center gap-1 ${
                                       isPinned
                                         ? 'bg-white text-stone-900 shadow-sm'
@@ -2894,7 +2887,7 @@
                                     }`}
                                   >
                                     <span>📍</span>
-                                    <span>{isPinned ? 'Pinned on Map' : 'Pin on Map'}</span>
+                                    <span>{isPinned ? 'Location shown' : 'Show reported location'}</span>
                                   </button>
 
                                   <div className="flex items-center gap-2">
@@ -2907,16 +2900,7 @@
                                       {copiedId === cand.id ? '✓ Pitch Copied' : '📋 Copy'}
                                     </button>
 
-                                    {cand.submissionLink && (
-                                      <a
-                                        href={cand.submissionLink}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        className="text-[11px] font-semibold text-blue-500 hover:underline"
-                                      >
-                                        Profile &rarr;
-                                      </a>
-                                    )}
+
                                   </div>
                                 </div>
 
@@ -2946,21 +2930,21 @@
               {/* SLIDE-OUT CANDIDATE CITY CLUSTER DRAWER */}
               {selectedCandidateGroup && (
                 <div className="absolute top-4 left-4 right-4 sm:right-auto sm:w-[460px] max-h-[88%] bg-white/95 border border-stone-200 rounded-3xl shadow-2xl backdrop-blur z-30 flex flex-col overflow-hidden animate-in fade-in duration-150">
-                  
+
                   {/* Drawer Header */}
                   <div className="p-4 border-b border-stone-100 flex items-start justify-between bg-stone-50/50 shrink-0">
                     <div className="flex-1 pr-2">
                       <div className="flex items-center gap-2">
                         <span className="text-[10px] font-mono uppercase tracking-wider text-stone-400 font-bold">Candidate Pool</span>
                         <span className="bg-stone-900 text-white text-[10px] px-2 py-0.5 rounded-full font-semibold">
-                          🌿 {selectedCandidateGroup.candidates.length} in Area
+                          👤 {selectedCandidateGroup.candidates.length} records
                         </span>
                       </div>
                       <h2 className="text-base font-bold text-stone-900 mt-0.5 leading-snug">
                         {selectedCandidateGroup.cityName}
                       </h2>
                       <p className="text-xs text-stone-500">
-                        Generalized candidate hub location
+                        Reported location (approximate)
                       </p>
                     </div>
                     <button
@@ -3068,6 +3052,7 @@
 
                           </div>
 
+                          <CandidateSubmissionLink candidate={cand} />
                           {/* Action Buttons */}
                           <div className="pt-2 border-t border-stone-100 flex items-center justify-between text-xs">
                             <button
@@ -3078,16 +3063,7 @@
                               <span>{copiedId === cand.id ? '✓ Pitch Copied' : 'Copy Pitch'}</span>
                             </button>
 
-                            {cand.submissionLink && (
-                              <a
-                                href={cand.submissionLink}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="text-[11px] font-semibold text-blue-500 hover:underline"
-                              >
-                                Profile &rarr;
-                              </a>
-                            )}
+
                           </div>
 
                         </div>
