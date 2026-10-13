@@ -342,17 +342,60 @@
         profileLink: safeReviewUrl(row['Profile Link'] || row.profileLink) || (!isMail ? generic : '')
       };
     }
+    const normalizeIdentity = value => String(value || '').normalize('NFC').toLowerCase().trim().replace(/\s+/g, ' ');
+    function attachTrackerSubmissions(candidates, rows) {
+      if (rows.length && (!Object.hasOwn(rows[0], 'Candidate Name') || !Object.hasOwn(rows[0], 'Submission Link'))) {
+        throw new Error('The Tracker tab must contain Candidate Name and Submission Link columns.');
+      }
+      const byName = new Map();
+      rows.forEach(row => {
+        const url = safeReviewUrl(row['Submission Link']);
+        const key = normalizeIdentity(row['Candidate Name']);
+        if (!key || !url) return;
+        const record = {
+          url,
+          title: row['Current / Most Recent Title'] || row['Current Title'] || '',
+          company: row['Current / Most Recent Company'] || row['Current Company'] || row['Company'] || '',
+          client: row['Client Submitted To'] || row['Submitted To'] || '',
+          date: row['Submission Date'] || row['Submitted On'] || '',
+          role: row['Role Submitted For'] || ''
+        };
+        if (!byName.has(key)) byName.set(key, []);
+        byName.get(key).push(record);
+      });
+      return candidates.map(candidate => {
+        const sourceRows = byName.get(normalizeIdentity(candidate.name)) || [];
+        const compatible = sourceRows.filter(row =>
+          (!candidate.title || !row.title || normalizeIdentity(candidate.title) === normalizeIdentity(row.title)) &&
+          (!candidate.company || !row.company || normalizeIdentity(candidate.company) === normalizeIdentity(row.company)));
+        const identities = new Set(compatible.map(row => `${normalizeIdentity(row.title)}|${normalizeIdentity(row.company)}`));
+        const ambiguous = identities.size > 1;
+        const seen = new Set();
+        const submissionEmails = (ambiguous ? [] : compatible).filter(row => {
+          if (seen.has(row.url)) return false;
+          seen.add(row.url);return true;
+        });
+        if (candidate.submissionLink && !seen.has(candidate.submissionLink)) {
+          submissionEmails.push({url:candidate.submissionLink, client:candidate.submittedTo, date:candidate.submittedOn, role:''});
+        }
+        return {...candidate, submissionEmails, submissionReviewStatus: ambiguous ? 'ambiguous' : submissionEmails.length ? 'available' : 'missing'};
+      });
+    }
     function CandidateSubmissionLink({ candidate }) {
+      const emails = candidate.submissionEmails || (candidate.submissionLink ? [{url:candidate.submissionLink, client:candidate.submittedTo, date:candidate.submittedOn}] : []);
       return (
-        <div className="mt-2 space-y-1 text-[11px]">
-          {candidate.submittedTo && <p>Submitted to: {candidate.submittedTo}</p>}
-          {candidate.submittedOn && <p>Submitted on: {candidate.submittedOn}</p>}
-          {candidate.submissionLink ? (
-            <a href={candidate.submissionLink} target="_blank" rel="noopener noreferrer"
-              className="inline-flex items-center gap-1 font-semibold text-blue-500 hover:underline">
-              ✉ Review submission email ↗
-            </a>
-          ) : <p className="text-stone-400">Submission email link not provided</p>}
+        <div className="mt-2 space-y-2 text-[11px]">
+          {emails.length ? emails.map((email, index) => (
+            <div key={email.url} className="space-y-1">
+              {email.client && <p>Submitted to: {email.client}</p>}
+              {email.role && <p>Submitted for: {email.role}</p>}
+              {email.date && <p>Submitted on: {email.date}</p>}
+              <a href={email.url} target="_blank" rel="noopener noreferrer"
+                className="inline-flex items-center gap-1 font-semibold text-blue-500 hover:underline">
+                ✉ Review submission email{emails.length > 1 ? ` ${index + 1}` : ''} ↗
+              </a>
+            </div>
+          )) : <p className="text-stone-400">{candidate.submissionReviewStatus === 'ambiguous' ? 'Tracker identity needs review before linking an email' : 'Submission email link not provided'}</p>}
           {candidate.profileLink && <a href={candidate.profileLink} target="_blank" rel="noopener noreferrer"
             className="block text-blue-500 hover:underline">View profile ↗</a>}
         </div>
@@ -847,15 +890,20 @@
     }
 
     // --- JSONP GOOGLE SHEETS FETCHER ---
-    function fetchSheetViaJSONP(sheetId, sheetName) {
+    function fetchSheetViaJSONP(sheetId, sheetName, gid = null) {
       return new Promise((resolve, reject) => {
-        const callbackName = 'sheetCallback_' + Math.round(100000 * Math.random());
+        const callbackName = 'sheetCallback_' + crypto.randomUUID().replace(/-/g, '');
         const script = document.createElement('script');
+        const cleanup = () => {
+          clearTimeout(timeout);
+          delete window[callbackName];
+          if (script.parentNode) script.parentNode.removeChild(script);
+        };
+        const timeout = setTimeout(() => { cleanup(); reject(new Error('Sheet request timed out')); }, 12000);
 
         window[callbackName] = function(data) {
           try {
-            delete window[callbackName];
-            if (script.parentNode) script.parentNode.removeChild(script);
+            cleanup();
             if (!data || !data.table) {
               reject(new Error('Invalid table format from Google Sheets'));
               return;
@@ -876,10 +924,10 @@
           }
         };
 
-        script.src = `https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?sheet=${encodeURIComponent(sheetName)}&tqx=responseHandler:${callbackName}`;
+        const selection = gid !== null ? `gid=${encodeURIComponent(gid)}` : `sheet=${encodeURIComponent(sheetName)}`;
+        script.src = `https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?${selection}&tqx=responseHandler:${callbackName}`;
         script.onerror = () => {
-          delete window[callbackName];
-          if (script.parentNode) script.parentNode.removeChild(script);
+          cleanup();
           reject(new Error('JSONP network error'));
         };
         document.body.appendChild(script);
@@ -969,6 +1017,7 @@
       const [candidateMatchScope, setCandidateMatchScope] = useState('relevant');
       const [drawerTab, setDrawerTab] = useState('role'); // 'role' | 'candidates'
       const [candidateSearchText, setCandidateSearchText] = useState('');
+      const [trackerLinkWarning, setTrackerLinkWarning] = useState('');
       const [userLocation, setUserLocation] = useState(null);
 
       // Resizable Sidebar Split Pane State
@@ -1043,6 +1092,7 @@
       const hasInitiallyFittedRef = useRef(false);
 
       const CSV_URL = 'https://docs.google.com/spreadsheets/d/1RexJFAEWRwNjzeGThutrA0zMObu2g4r3q0Vu0uiDbQs/gviz/tq?tqx=out:csv&sheet=Jobs';
+      const TRACKER_SUBMISSIONS_GID = '1403113153'; // Ja-provided Tracker source tab, read-only.
       const CANDIDATES_CSV_URL = 'https://docs.google.com/spreadsheets/d/1RexJFAEWRwNjzeGThutrA0zMObu2g4r3q0Vu0uiDbQs/gviz/tq?tqx=out:csv&sheet=Candidates';
 
       // Background exact geocode worker for street-level precision and new locations
@@ -1156,7 +1206,7 @@
           const name = (cand['Candidate Name'] || cand['Candidates Candidate Name'] || cand['Name'] || cand.name || '').trim();
           const title = (cand['Current Title'] || cand['Current / Most Recent Title'] || cand['Title'] || cand.title || '').trim();
           const loc = (cand['Location'] || cand.location || '').trim();
-          const company = (cand['Current Company'] || cand['Current / Most Recent Company'] || cand.company || '').trim();
+          const company = (cand['Current Company'] || cand['Current / Most Recent Company'] || cand['Company'] || cand.company || '').trim();
           const industry = (cand['Industry'] || cand.industry || '').trim();
           const compTarget = (cand['Compensation Target'] || cand['Target Compensation / Current Rate'] || cand.compensationTarget || '').trim();
           const compCurrent = (cand['Current Compensation'] || cand.currentCompensation || '').trim();
@@ -1193,6 +1243,37 @@
       const fetchJobs = async () => {
         setLoading(true);
         setError(null);
+        setTrackerLinkWarning('');
+        // Start the independent read now; source failures never prevent job/candidate loading.
+        const trackerRequest = fetchSheetViaJSONP('1RexJFAEWRwNjzeGThutrA0zMObu2g4r3q0Vu0uiDbQs', null, TRACKER_SUBMISSIONS_GID)
+          .then(rows => ({rows}), error => ({error}));
+        const withTrackerLinks = async records => {
+          const result = await trackerRequest;
+          if (result.error) {
+            setTrackerLinkWarning('Tracker submission links could not be loaded. Existing source links are shown where available.');
+            return records;
+          }
+          try {
+            // Validate source columns before using the Tracker as a candidate fallback.
+            attachTrackerSubmissions([], result.rows);
+            let pool = records;
+            if (!pool.length && result.rows.length) {
+              const unique = new Map();
+              enrichCandidates(result.rows)
+                .sort((a, b) => (Date.parse(b.submittedOn) || 0) - (Date.parse(a.submittedOn) || 0))
+                .forEach(candidate => {
+                  const key = [candidate.name, candidate.title, candidate.company].map(normalizeIdentity).join('|');
+                  if (!unique.has(key)) unique.set(key, candidate);
+                });
+              pool = [...unique.values()];
+            }
+            return attachTrackerSubmissions(pool, result.rows);
+          }
+          catch {
+            setTrackerLinkWarning('Tracker column mapping needs review. Existing source links are shown where available.');
+            return records;
+          }
+        };
         try {
           let activeJobs = [];
           let loadedCandidates = [];
@@ -1236,9 +1317,9 @@
           setJobs(enriched);
 
           if (loadedCandidates.length > 0) {
-            setCandidates(loadedCandidates);
+            setCandidates(await withTrackerLinks(loadedCandidates));
           } else {
-            setCandidates(enrichCandidates(MOCK_CANDIDATES));
+            setCandidates(await withTrackerLinks([]));
           }
 
           setLastUpdated(new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
@@ -1246,12 +1327,8 @@
           // Trigger asynchronous background precision geocoder for exact addresses
           geocodeExactAddresses(enriched);
         } catch (err) {
-          console.warn('Live fetch error, using mock data:', err.message);
-          const enrichedMock = expandAndEnrichJobs(MOCK_JOBS);
-          setJobs(enrichedMock);
-          setCandidates(enrichCandidates(MOCK_CANDIDATES));
-          setError('Loaded cached records.');
-          setLastUpdated(new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
+          console.warn('Live data refresh failed:', err.message);
+          setError('Live records could not be refreshed. Please retry.');
         } finally {
           setLoading(false);
         }
@@ -2723,6 +2800,7 @@
                             <span className="bg-stone-900 text-white text-[10px] px-2 py-0.5 rounded-full font-bold">{matchedCandidates.length} found</span>
                           </div>
                           <p className="text-[11px] text-stone-600">Role matches first, then similar roles and related industries. Locations are approximate.</p>
+                          {trackerLinkWarning && <p className="text-[11px] text-amber-800">{trackerLinkWarning}</p>}
                           <button onClick={() => { setCandidateMatchScope('relevant'); setDrawerTab('candidates'); }}
                             className="w-full bg-stone-900 hover:bg-stone-800 text-white py-2 px-3 rounded-xl font-medium text-xs flex items-center justify-between transition shadow-sm">
                             <span>View candidate suggestions</span><span>&rarr;</span>
@@ -2786,6 +2864,7 @@
                           </div>
                         </div>
 
+                        {trackerLinkWarning && <p className="text-[11px] text-amber-800">{trackerLinkWarning}</p>}
                         {/* Candidate Cards List */}
                         {matchedCandidates.length === 0 ? (
                           <div className="py-12 text-center text-stone-400 space-y-2">

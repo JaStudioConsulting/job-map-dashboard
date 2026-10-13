@@ -41,7 +41,7 @@ An interactive, single-page web dashboard built for **Top Tier Talent Group** to
    - Use **Show** to filter by match type, or search the relevant candidate pool. Each card explains its matching basis.
    - **Review submission email** opens the original email URL supplied in `Submission Link` (also accepts `Submission Email Link`, `Submission Email URL`, or `Email Link`). Cards show source client/date when supplied.
    - A generic `Link` remains a profile link unless it is a recognized Gmail or Outlook email URL. Missing or invalid source-email links are shown as unavailable; the app never generates an email URL from a name.
-   - The candidate importer accepts the Tracker headers `Candidate Name`, `Current / Most Recent Title`, `Current / Most Recent Company`, `Client Submitted To`, `Submission Date`, `Profile Summary`, `Additional Notes`, and `License & Certifications` alongside existing dashboard headers. This does not configure a separate Tracker workbook automatically.
+   - The candidate importer accepts the Tracker headers `Candidate Name`, `Current / Most Recent Title`, `Current / Most Recent Company`, `Client Submitted To`, `Submission Date`, `Profile Summary`, `Additional Notes`, and `License & Certifications` alongside existing dashboard headers. The original submission-email links are read from the same workbook, using Ja’s Tracker tab `gid=1403113153`. Candidate identities are matched by full name with current-title/company checks; ambiguous identities are flagged. Multiple source emails are preserved. Tracker data is read-only. If the Candidates tab has no records, actual Tracker rows supply the candidate pool. Failed job refreshes preserve previously loaded records and show an error; sample records are never substituted as live data.
 5. **Copying Candidate Pitches:**
    - Click **📋 Copy Pitch** on any card or inside the detail drawer.
    - Automatically copies a formatted brief to your clipboard ready for candidate calls or emails.
@@ -121,7 +121,7 @@ The dashboard is built as a self-contained, high-reliability Single-Page Applica
 * **Dual Ingestion Engine:**
   1. **Primary:** Google Visualization JSONP API (`/gviz/tq?sheet=Jobs&tqx=responseHandler:...`) — completely bypasses browser CORS restrictions on static file and GitHub Pages environments.
   2. **Secondary Fallback:** Direct CSV fetch with custom quote-aware CSV parser.
-  3. **Offline Fallback:** Cached sample dataset if network is unavailable.
+  3. **Unavailable Source:** Keep previously loaded records and display a refresh error. If the Candidates tab is empty, read actual candidate records from the configured Tracker tab; never substitute sample candidates.
 * **Typeahead Engine:** High-speed OSM Photon autocomplete API combined with local preloaded dictionary and cache.
 * **Security:** Recruiter gatekeeper (`TTTG2026`) stored in `localStorage` (`tttg_radar_auth`), with robots `noindex, nofollow` to prevent indexing on public search engines.
 
