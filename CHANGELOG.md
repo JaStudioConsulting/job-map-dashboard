@@ -27,6 +27,14 @@ All notable changes, fixes, and architectural upgrades for the **Top Tier Talent
 - Map pin effects were declared before the memoized lists they depended on, so filter changes did not always redraw pins. Moved below `matchedCandidates`.
 - Picking a job on the mobile List tab no longer throws a Leaflet fly error on the hidden map.
 - Location suggestions close when a search is submitted.
+- Removed a regex lookbehind that older iPhones and iPads (before iOS 16.4) cannot parse, which would have blanked the app.
+- Pinned React 18.3.1 and Babel 8.0.7 so a CDN release cannot change the live page.
+- A bare "ON" location no longer lands in Windsor. Accented cities (Montréal) now match.
+- Background geocoder stops on a rate limit instead of retrying every second.
+- Panning no longer re-renders the panels (pin redraw only, about 3 ms).
+- Jobs with no mapped location turn the radius off and list every match.
+- Sheet load failures now show a notice with Retry (the error was set but never displayed).
+- The picked job follows its background address geocode, and picking a job closes the search-mode candidate drawer.
 
 ## [Unreleased] / v2.6.0 — 2026-10-13
 

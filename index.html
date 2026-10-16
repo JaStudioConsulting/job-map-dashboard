@@ -48,9 +48,9 @@
   <script src="https://cdn.jsdelivr.net/npm/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
 
   <!-- React 18 & Babel -->
-  <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
-  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
-  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <script src="https://unpkg.com/react@18.3.1/umd/react.production.min.js" crossorigin></script>
+  <script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.production.min.js" crossorigin></script>
+  <script src="https://unpkg.com/@babel/standalone@8.0.7/babel.min.js"></script>
 
   <style>
     html, body, #root {
@@ -1194,8 +1194,9 @@
       'nova scotia':'ns', 'new brunswick':'nb', newfoundland:'nl', 'prince edward island':'pe' };
     const PROVINCE_RE = /,\s*(on|qc|bc|ab|mb|sk|ns|nb|nl|pe)\b|\b(ontario|quebec|british columbia|alberta|manitoba|saskatchewan|nova scotia|new brunswick|newfoundland|prince edward island)\b/;
     // First place-like segment of a free-text candidate location, normalized to the CITY_COORDINATES key shape.
-    const primaryCityKey = loc => String(loc || '')
-      .split(/\s*[|(;\/\n]\s*|\s*-\s+|\s+-\s*|(?<!\b(?:st|ste|mt))\.\s+|[,\s]\s*(?:open|willing|relocat\w*|currently|but|comfortable|prefers|preferably|lives|drives|looking|would|flexible|realistic|commut\w*|g licence)\b/i)[0]
+    const primaryCityKey = loc => String(loc || '').normalize('NFD').replace(/[̀-ͯ]/g, '')
+      .replace(/\b(st|ste|mt)\.\s*/gi, '$1 ')
+      .split(/\s*[|(;\/\n]\s*|\s*-\s+|\s+-\s*|\.\s+|[,\s]\s*(?:open|willing|relocat\w*|currently|but|comfortable|prefers|preferably|lives|drives|looking|would|flexible|realistic|commut\w*|g licence)\b/i)[0]
       .toLowerCase().replace(/^(?:currently based in|currently in|based in|lives in|resides in)\s+/, '')
       .replace(/[^\w\s,]/g, ' ').replace(/\s+/g, ' ').replace(/\s*,\s*/g, ', ').trim()
       .replace(/^([a-z ]+?),? (on|ontario|qc|quebec|bc|ab|alberta|mb|sk|ns|nova scotia|nb|nl|pe)$/, (m, city, prov) => `${city}, ${PROVINCE_ALIASES[prov] || prov}`)
@@ -1212,7 +1213,10 @@
         const hit = Object.keys(CITY_COORDINATES).find(k => k.startsWith(`${key},`) || key.startsWith(`${k.split(',')[0]},`));
         if (hit) return { coords: CITY_COORDINATES[hit], approxLevel: 'city', cityKey: key };
       }
-      const legacy = resolveCoordinates(loc);
+      const bareProvince = PROVINCE_ALIASES[key] || (PROVINCE_CENTERS[key] ? key : null);
+      if (bareProvince) return { coords: PROVINCE_CENTERS[bareProvince], approxLevel: 'province', cityKey: '' };
+      // Legacy substring match only for real words; short strings like "on" match half the table.
+      const legacy = key.length >= 4 ? resolveCoordinates(loc) : null;
       if (legacy) return { coords: legacy.latLng, approxLevel: 'city', cityKey: key };
       const prov = String(loc).toLowerCase().match(PROVINCE_RE);
       const code = prov && (prov[1] || PROVINCE_ALIASES[prov[2]]);
@@ -1424,7 +1428,7 @@
       const candidateGeocodeRunningRef = useRef(false);
       const candidatesLayerTouchedRef = useRef(false);
       const radiusCircleJobRef = useRef(null);
-      const [mapBounds, setMapBounds] = useState(null);
+      const plotCandidatesRef = useRef(() => {});
 
       const CSV_URL = 'https://docs.google.com/spreadsheets/d/1RexJFAEWRwNjzeGThutrA0zMObu2g4r3q0Vu0uiDbQs/gviz/tq?tqx=out:csv&sheet=Jobs';
       const TRACKER_SUBMISSIONS_GID = '1403113153'; // Ja-provided Tracker source tab, read-only.
@@ -1593,6 +1597,7 @@
             await new Promise(r => setTimeout(r, 1100));
             const q = key.includes(',') ? key : `${key}, Ontario`;
             const res = await fetch(`https://nominatim.openstreetmap.org/search?format=jsonv2&limit=1&countrycodes=ca,us&q=${encodeURIComponent(q)}`, { headers: { 'Accept-Language': 'en' } });
+            if (!res.ok) break; // rate limited or down: try again next load
             const data = await res.json();
             const hit = data && data[0];
             const placeTypes = ['city','town','village','hamlet','suburb','municipality','neighbourhood','quarter','borough','city_district','locality'];
@@ -1737,8 +1742,9 @@
           }).addTo(map);
 
           mapInstanceRef.current = map;
-          // Candidate pins load for the visible area only; re-plot after each pan or zoom.
-          map.on('moveend', () => setMapBounds(map.getBounds()));
+          // Candidate pins load for the visible area only; re-plot after each pan or zoom
+          // (outside React state, so panning never re-renders the panels).
+          map.on('moveend', () => plotCandidatesRef.current());
 
           // Force Leaflet to recalculate container dimensions & fetch all missing tiles
           const sizeTimer = setTimeout(() => {
@@ -2173,6 +2179,7 @@
 
       const handleSelectJob = (job) => {
         setSelectedJob(job);
+        setSelectedCandidateGroup(null);
         setPinnedCandidateId(null);
         setDrawerTab('role');
         setCandidateMatchScope('relevant');
@@ -2201,6 +2208,15 @@
         }
       };
 
+      // Keep the picked job's coordinates in step with the background address geocoder.
+      useEffect(() => {
+        if (!selectedJob) return;
+        const fresh = jobs.find(j => j.id === selectedJob.id);
+        if (fresh && validCoords(fresh.coords) && String(fresh.coords) !== String(selectedJob.coords)) {
+          setSelectedJob(prev => prev && prev.id === fresh.id ? { ...prev, coords: fresh.coords } : prev);
+        }
+      }, [jobs]);
+
       // Rank title match first, then industry, then city-level distance. Unknown locations remain eligible.
       const matchedCandidates = useMemo(() => {
         if (!selectedJob) return [];
@@ -2228,7 +2244,8 @@
           })
           .filter(cand => {
             // radius dial: keep in-radius always; keep out-of-radius (or unknown location) only if strong title match
-            if (radiusKm === 'ALL') return true;
+            // A job with no mapped location has nothing to measure from, so the radius is off.
+            if (radiusKm === 'ALL' || !validCoords(selectedJob.coords)) return true;
             if (cand.distanceKm !== null && cand.distanceKm <= radiusKm) return true;
             return cand.matchTier === 0;   // strong title match survives the wall
           })
@@ -2306,81 +2323,85 @@
 
       // 3b. Candidate pins: only those inside the current view, scattered inside their city, capped for safety.
       useEffect(() => {
-        const map = mapInstanceRef.current;
-        if (!map) return;
+        const plot = () => {
+          const map = mapInstanceRef.current;
+          if (!map) return;
 
-        Object.values(candidateCityMarkersRef.current).forEach(marker => map.removeLayer(marker));
-        candidateCityMarkersRef.current = {};
-        if (candidateClusterRef.current) {
-          map.removeLayer(candidateClusterRef.current);
-          candidateClusterRef.current.clearLayers();
-          candidateClusterRef.current = null;
-        }
-        if (!candidatesOnMap) return;
+          Object.values(candidateCityMarkersRef.current).forEach(marker => map.removeLayer(marker));
+          candidateCityMarkersRef.current = {};
+          if (candidateClusterRef.current) {
+            map.removeLayer(candidateClusterRef.current);
+            candidateClusterRef.current.clearLayers();
+            candidateClusterRef.current = null;
+          }
+          if (!candidatesOnMap) return;
 
-        const cluster = L.markerClusterGroup({
-          maxClusterRadius: 45,
-          showCoverageOnHover: false,
-          spiderfyOnMaxZoom: false,        // was true, this was the swirl
-          zoomToBoundsOnClick: true,
-          disableClusteringAtZoom: 14,     // street-level zoom shows every scattered pin
-          animate: false,                  // no spin
-          iconCreateFunction: group => L.divIcon({
-            html: `<span>${group.getChildCount()}</span>`, className: 'candidate-cluster',
-            iconSize: [42, 42], iconAnchor: [21, 21]
-          })
-        });
-        candidateClusterRef.current = cluster;
-
-        const bounds = map.getBounds();
-        const MAX_PINS = 300;
-        let plotted = 0;
-        mapCandidatePool.forEach(cand => {
-          const plotCoords = cand.spreadCoords || cand.coords;
-          if (!validCoords(plotCoords)) return;
-          if (!bounds.contains(plotCoords)) return;     // only what is visible
-          if (plotted >= MAX_PINS) return;
-          plotted++;
-
-          const isPinned = pinnedCandidateId === cand.id;
-          const marker = L.marker(plotCoords, { icon: createCandidateIcon(isPinned), title: cand.name });
-
-          marker.bindTooltip(`
-            <div class="px-2 py-1 text-center">
-              <p class="font-bold text-stone-900 text-xs">${escapeHtml(cand.name)}</p>
-              <p class="text-stone-600 text-[10px] font-medium">${escapeHtml(cand.title)}</p>
-              <p class="text-stone-500 text-[9px] mt-0.5">📌 ${escapeHtml(cand.location)} (approx.)</p>
-              ${cand.company ? `<p class="text-stone-400 text-[9px]">🏢 ${escapeHtml(cand.company)}</p>` : ''}
-              <p class="text-stone-400 text-[9px] mt-1">Click to view candidate details</p>
-            </div>
-          `, { direction: 'top', offset: [0, -18], opacity: 0.98, className: 'leaflet-popup-content-wrapper p-2' });
-
-          marker.on('click', () => {
-            setPinnedCandidateId(cand.id);
-            if (selectedJob) {
-              // Keep the job pinned; jump to this candidate in the matches panel.
-              setActiveTab(prev => prev === 'map' && !isDesktop ? 'matches' : prev);
-              setTimeout(() => {
-                const el = document.querySelector(`[data-candidate-id="${cand.id}"]`);
-                if (el) el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-              }, 50);
-              return;
-            }
-            setSelectedCandidateGroup({
-              key: cand.location,
-              cityName: cand.location,
-              coords: cand.coords,
-              candidates: cand.cityCandidates || [cand],
-              selectedCandidateId: cand.id
-            });
+          const cluster = L.markerClusterGroup({
+            maxClusterRadius: 45,
+            showCoverageOnHover: false,
+            spiderfyOnMaxZoom: false,        // was true, this was the swirl
+            zoomToBoundsOnClick: true,
+            disableClusteringAtZoom: 14,     // street-level zoom shows every scattered pin
+            animate: false,                  // no spin
+            iconCreateFunction: group => L.divIcon({
+              html: `<span>${group.getChildCount()}</span>`, className: 'candidate-cluster',
+              iconSize: [42, 42], iconAnchor: [21, 21]
+            })
           });
+          candidateClusterRef.current = cluster;
 
-          if (isPinned) marker.addTo(map);
-          else cluster.addLayer(marker);
-          candidateCityMarkersRef.current[cand.id] = marker;
-        });
-        cluster.addTo(map);
-      }, [mapCandidatePool, candidatesOnMap, pinnedCandidateId, mapBounds, selectedJob, isDesktop, isAuthenticated]);
+          const bounds = map.getBounds();
+          const MAX_PINS = 300;
+          let plotted = 0;
+          mapCandidatePool.forEach(cand => {
+            const plotCoords = cand.spreadCoords || cand.coords;
+            if (!validCoords(plotCoords)) return;
+            if (!bounds.contains(plotCoords)) return;     // only what is visible
+            if (plotted >= MAX_PINS) return;
+            plotted++;
+
+            const isPinned = pinnedCandidateId === cand.id;
+            const marker = L.marker(plotCoords, { icon: createCandidateIcon(isPinned), title: cand.name });
+
+            marker.bindTooltip(`
+              <div class="px-2 py-1 text-center">
+                <p class="font-bold text-stone-900 text-xs">${escapeHtml(cand.name)}</p>
+                <p class="text-stone-600 text-[10px] font-medium">${escapeHtml(cand.title)}</p>
+                <p class="text-stone-500 text-[9px] mt-0.5">📌 ${escapeHtml(cand.location)} (approx.)</p>
+                ${cand.company ? `<p class="text-stone-400 text-[9px]">🏢 ${escapeHtml(cand.company)}</p>` : ''}
+                <p class="text-stone-400 text-[9px] mt-1">Click to view candidate details</p>
+              </div>
+            `, { direction: 'top', offset: [0, -18], opacity: 0.98, className: 'leaflet-popup-content-wrapper p-2' });
+
+            marker.on('click', () => {
+              setPinnedCandidateId(cand.id);
+              if (selectedJob) {
+                // Keep the job pinned; jump to this candidate in the matches panel.
+                setActiveTab(prev => prev === 'map' && !isDesktop ? 'matches' : prev);
+                setTimeout(() => {
+                  const el = document.querySelector(`[data-candidate-id="${cand.id}"]`);
+                  if (el) el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                }, 50);
+                return;
+              }
+              setSelectedCandidateGroup({
+                key: cand.location,
+                cityName: cand.location,
+                coords: cand.coords,
+                candidates: cand.cityCandidates || [cand],
+                selectedCandidateId: cand.id
+              });
+            });
+
+            if (isPinned) marker.addTo(map);
+            else cluster.addLayer(marker);
+            candidateCityMarkersRef.current[cand.id] = marker;
+          });
+          cluster.addTo(map);
+        };
+        plotCandidatesRef.current = plot;
+        plot();
+      }, [mapCandidatePool, candidatesOnMap, pinnedCandidateId, selectedJob, isDesktop, isAuthenticated]);
 
       // Radius dial outline around the picked job
       useEffect(() => {
@@ -3020,6 +3041,13 @@
                 </button>
               </div>
 
+              {error && (
+                <div role="alert" className="px-3.5 py-2 bg-white border-b border-stone-200 text-[11px] text-stone-900 flex items-center justify-between gap-2 shrink-0">
+                  <span>{jobs.length ? 'Live records could not be refreshed. Showing the last loaded data.' : 'Live records could not be loaded from Google Sheets.'}</span>
+                  <button onClick={fetchJobs} className="font-semibold underline underline-offset-2 shrink-0">Retry</button>
+                </div>
+              )}
+
               {/* Scrollable Container (keyed so picking a job starts at the top) */}
               <div key={selectedJob ? `job-${selectedJob.id}` : 'job-list'} className="flex-1 overflow-y-auto p-3.5 space-y-3 overscroll-contain custom-scrollbar">
                 {selectedJob ? (
@@ -3070,7 +3098,7 @@
                   </div>
                 ) : processedJobs.length === 0 ? (
                   <div className="py-20 text-center space-y-2">
-                    <p className="text-sm font-semibold text-stone-900">No active jobs match filters</p>
+                    <p className="text-sm font-semibold text-stone-900">{jobs.length ? 'No active jobs match filters' : 'No active jobs loaded'}</p>
                     <p className="text-xs text-stone-600">Try adjusting your search radius or keyword.</p>
                   </div>
                 ) : (
@@ -3337,7 +3365,7 @@
                   <div>
                     <div className="flex items-center justify-between text-[11px] mb-1.5">
                       <label htmlFor="radius-dial" className="font-semibold text-stone-900">Radius</label>
-                      <span className="text-stone-900">{radiusKm === 'ALL' ? 'All locations' : `${radiusKm} km`}</span>
+                      <span className="text-stone-900">{!validCoords(selectedJob.coords) ? 'Off' : radiusKm === 'ALL' ? 'All locations' : `${radiusKm} km`}</span>
                     </div>
                     <div className="flex items-center gap-2.5">
                       <input
@@ -3345,19 +3373,25 @@
                         type="range" min="10" max="150" step="5"
                         value={radiusKm === 'ALL' ? 150 : radiusKm}
                         onChange={(e) => setRadiusKm(Number(e.target.value))}
-                        className={`radius-dial flex-1 ${radiusKm === 'ALL' ? 'opacity-40' : ''}`}
+                        disabled={!validCoords(selectedJob.coords)}
+                        className={`radius-dial flex-1 disabled:cursor-not-allowed ${radiusKm === 'ALL' || !validCoords(selectedJob.coords) ? 'opacity-40' : ''}`}
                       />
                       <button
                         onClick={() => setRadiusKm(prev => prev === 'ALL' ? 50 : 'ALL')}
                         aria-pressed={radiusKm === 'ALL'}
-                        className={`h-7 px-2.5 rounded-md border text-[11px] font-semibold transition-colors ${
+                        disabled={!validCoords(selectedJob.coords)}
+                        className={`h-7 px-2.5 rounded-md border text-[11px] font-semibold transition-colors disabled:opacity-40 disabled:cursor-not-allowed ${
                           radiusKm === 'ALL' ? 'bg-stone-900 text-white border-stone-900' : 'bg-white text-stone-900 border-stone-300 hover:bg-stone-100'
                         }`}
                       >
                         All
                       </button>
                     </div>
-                    <p className="text-[10.5px] text-stone-600 mt-1.5">Title matches outside the radius, or with no location, stay listed. All shows everyone. Distances are city level estimates.</p>
+                    <p className="text-[10.5px] text-stone-600 mt-1.5">
+                      {validCoords(selectedJob.coords)
+                        ? 'Title matches outside the radius, or with no location, stay listed. All shows everyone. Distances are city level estimates.'
+                        : 'This job has no mapped location, so every match is listed.'}
+                    </p>
                   </div>
 
                   <div className="flex items-center gap-2">
