@@ -9,11 +9,6 @@
   <meta http-equiv="Expires" content="0" />
   <title>Top Tier Talent Group | Proximity Radar & Active Job Map</title>
 
-  <!-- Google Fonts: Inter & JetBrains Mono -->
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
-
   <!-- Tailwind CSS -->
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
@@ -21,8 +16,9 @@
       theme: {
         extend: {
           fontFamily: {
-            sans: ['Inter', 'system-ui', '-apple-system', 'sans-serif'],
-            mono: ['JetBrains Mono', 'Menlo', 'monospace'],
+            // House rule: Arial or Calibri only
+            sans: ['Arial', 'Calibri', 'sans-serif'],
+            mono: ['Arial', 'Calibri', 'sans-serif'],
           },
           colors: {
             stone: {
@@ -63,8 +59,82 @@
       margin: 0;
       padding: 0;
       overflow: hidden;
-      font-family: 'Inter', -apple-system, sans-serif;
+      font-family: Arial, Calibri, sans-serif;
+      color: #1a1a1a;
     }
+    /* Search and filter controls: one height, one border, no gradients */
+    .search-field {
+      height: 42px;
+      box-sizing: border-box;
+      padding: 11px 36px 11px 40px;
+      background: #FFFFFF;
+      border: 1px solid #e7e4df;
+      border-radius: 10px;
+      color: #1a1a1a;
+      font-family: Arial, Calibri, sans-serif;
+      font-size: 14px;
+      line-height: 20px;
+      transition: border-color .15s, box-shadow .15s;
+    }
+    .search-field::placeholder, .control-field::placeholder { color: #787165; }
+    .search-field:focus, .control-field:focus {
+      outline: none;
+      border-color: #1a1a1a;
+      box-shadow: 0 0 0 3px rgba(26, 26, 26, 0.08);
+    }
+    .control-field {
+      height: 42px;
+      box-sizing: border-box;
+      padding: 0 12px;
+      background: #FFFFFF;
+      border: 1px solid #e7e4df;
+      border-radius: 10px;
+      color: #1a1a1a;
+      font-family: Arial, Calibri, sans-serif;
+      font-size: 13px;
+    }
+    aside .control-field { height: 36px; font-size: 12px; border-radius: 8px; }
+    .segmented {
+      display: inline-flex;
+      height: 42px;
+      box-sizing: border-box;
+      padding: 3px;
+      gap: 2px;
+      background: #FFFFFF;
+      border: 1px solid #e7e4df;
+      border-radius: 10px;
+    }
+    .segmented button {
+      min-width: 38px;
+      padding: 0 10px;
+      border-radius: 7px;
+      font-size: 13px;
+      color: #575249;
+      transition: background-color .15s, color .15s;
+    }
+    .segmented button.is-on { background: #1a1a1a; color: #FFFFFF; font-weight: 600; }
+    .radius-dial { accent-color: #1a1a1a; height: 20px; cursor: pointer; }
+    .header-btn {
+      display: inline-flex; align-items: center; gap: 6px; height: 34px; padding: 0 12px;
+      border: 1px solid #e7e4df; border-radius: 9px; background: #FFFFFF;
+      color: #1a1a1a; font-size: 12px; font-weight: 500; transition: background-color .15s;
+    }
+    .header-btn:hover { background: #F5F3EF; }
+    .map-ctl, .map-ctl-group {
+      display: inline-flex; align-items: center; height: 34px; box-sizing: border-box;
+      background: #FFFFFF; border: 1px solid #e7e4df; border-radius: 9px;
+      box-shadow: 0 1px 3px rgba(28, 25, 22, 0.10);
+      color: #1a1a1a; font-size: 12px; font-weight: 600;
+    }
+    .map-ctl { gap: 6px; padding: 0 12px; transition: background-color .15s; }
+    .map-ctl:hover { background: #F5F3EF; }
+    .map-ctl-group { padding: 3px; gap: 2px; }
+    .map-ctl-group button {
+      display: inline-flex; align-items: center; gap: 6px; height: 26px; padding: 0 10px;
+      border-radius: 6px; color: #575249; transition: background-color .15s, color .15s;
+    }
+    .map-ctl-group button:hover { color: #1a1a1a; }
+    .map-ctl-group button.is-on { background: #1a1a1a; color: #FFFFFF; }
     #map-viewport {
       position: absolute !important;
       inset: 0 !important;
@@ -114,7 +184,7 @@
     .job-money-marker { width:44px; height:44px; display:flex; align-items:center; justify-content:center; font-size:40px; line-height:1; filter:drop-shadow(1px 0 0 white) drop-shadow(-1px 0 0 white) drop-shadow(0 2px 3px #0005); }
     .job-money-marker.is-selected { transform:scale(1.15); }
     .candidate-cluster { background:transparent; border:0; }
-    .candidate-cluster span { display:flex; width:42px; height:42px; align-items:center; justify-content:center; border-radius:50%; border:3px solid white; box-sizing:border-box; background:#2563eb; color:white; font-size:14px; font-weight:700; box-shadow:0 0 0 5px #2563eb33,0 2px 6px #0003; }
+    .candidate-cluster span { display:flex; width:42px; height:42px; align-items:center; justify-content:center; border-radius:50%; border:3px solid white; box-sizing:border-box; background:#2563eb; color:white; font-size:14px; font-weight:700; box-shadow:0 0 0 4px #2563eb22,0 1px 4px #0003; }
     .copy-control { display:inline-flex; align-items:center; justify-content:center; flex-shrink:0; width:32px; height:32px; padding:6px; border:0; border-radius:6px; color:inherit; background:transparent; cursor:pointer; transition:background-color .15s; }
     .copy-control svg { width:18px; height:18px; }
     .copy-control:hover { background:rgba(120,113,101,.12); }
@@ -413,13 +483,13 @@
               {email.role && <p>Submitted for: {email.role}</p>}
               {email.date && <p>Submitted on: {email.date}</p>}
               <a href={email.url} target="_blank" rel="noopener noreferrer"
-                className="inline-flex items-center gap-1 font-semibold text-blue-500 hover:underline">
+                className="inline-flex items-center gap-1 font-semibold text-stone-900 underline underline-offset-2 hover:no-underline">
                 ✉ Review submission email{emails.length > 1 ? ` ${index + 1}` : ''} ↗
               </a>
             </div>
-          )) : <p className="text-stone-400">{candidate.submissionReviewStatus === 'ambiguous' ? 'Tracker identity needs review before linking an email' : 'Submission email link not provided'}</p>}
+          )) : <p className="text-stone-500">{candidate.submissionReviewStatus === 'ambiguous' ? 'Tracker identity needs review before linking an email' : 'Submission email link not provided'}</p>}
           {candidate.profileLink && <a href={candidate.profileLink} target="_blank" rel="noopener noreferrer"
-            className="block text-blue-500 hover:underline">View profile ↗</a>}
+            className="block text-stone-900 underline underline-offset-2 hover:no-underline">View profile ↗</a>}
         </div>
       );
     }
@@ -510,7 +580,174 @@
       "richmond hill, on": [43.8828, -79.4403],
       "calgary, ab": [51.0447, -114.0719],
       "edmonton, ab": [53.5461, -113.4938],
-      "vancouver, bc": [49.2827, -123.1207]
+      "vancouver, bc": [49.2827, -123.1207],
+      // Candidate cities (one-time city-level geocode, Oct 2026). Not street level.
+      "acton, on": [43.6331, -80.042],
+      "ailsa craig, on": [43.1471, -81.5336],
+      "airdrie, ab": [51.286, -114.0106],
+      "amaranth, on": [43.9801, -80.2335],
+      "amherstburg, on": [42.1013, -83.1087],
+      "amherstview, on": [44.22, -76.6432],
+      "aurora, on": [43.9997, -79.4675],
+      "baldwin park, ca": [34.0855, -117.9612],
+      "beaverton, on": [44.4296, -79.155],
+      "beeton, on": [44.079, -79.7846],
+      "belle river, on": [42.2929, -82.7113],
+      "blainville, qc": [45.6793, -73.8762],
+      "blenheim, on": [42.3354, -81.9974],
+      "bolton, on": [43.8795, -79.7383],
+      "bond head, on": [44.0889, -79.6775],
+      "bowmanville": [43.9123, -78.6892],
+      "bowmanville, on": [43.9123, -78.6892],
+      "bradford, on": [44.115, -79.56],
+      "brandon, mb": [49.8511, -99.9609],
+      "brighton, on": [44.0422, -77.737],
+      "brockville, on": [44.6039, -75.7017],
+      "burnaby, bc": [49.2434, -122.9725],
+      "caledon, on": [43.8321, -79.9067],
+      "campbellford, on": [44.3086, -77.7981],
+      "carleton place, on": [45.1403, -76.1466],
+      "charing cross, on": [42.3327, -82.0973],
+      "charlottetown, pe": [46.2354, -63.1265],
+      "chatham kent": [42.4183, -82.0898],
+      "chatham kent, on": [42.4183, -82.0898],
+      "chelmsford, on": [46.5692, -81.1979],
+      "chestermere, ab": [51.0527, -113.8253],
+      "clarington, on": [43.9687, -78.6514],
+      "cobourg, on": [43.9596, -78.1678],
+      "coburg, on": [43.9593, -78.1677],
+      "cochrane, ab": [51.1875, -114.4711],
+      "coldwater, on": [44.7097, -79.644],
+      "collingwood, on": [44.5027, -80.2172],
+      "concord, on": [43.8004, -79.4994],
+      "conestogo, on": [43.5413, -80.5049],
+      "cookstown, on": [44.1898, -79.7017],
+      "corunna, on": [42.8886, -82.4533],
+      "cottam, on": [42.1286, -82.7441],
+      "courtice, on": [43.9118, -78.778],
+      "dartmouth, ns": [44.68, -63.572],
+      "delhi, on": [42.8545, -80.4984],
+      "delta, on": [44.6091, -76.1226],
+      "dresden, on": [42.591, -82.1795],
+      "durham": [44.031, -78.9497],
+      "east gwillimbury": [44.0958, -79.4898],
+      "east gwillimbury, on": [44.0958, -79.4898],
+      "east york, on": [43.7, -79.3325],
+      "eastvale, ca": [33.9747, -117.5665],
+      "ennismore, on": [44.41, -78.4318],
+      "essex, on": [42.2354, -82.712],
+      "exeter, on": [43.345, -81.4801],
+      "fergus, on": [43.7059, -80.3779],
+      "feversham, on": [44.3401, -80.3761],
+      "fort worth, tx": [32.7532, -97.3327],
+      "gatineau, qc": [45.4278, -75.711],
+      "georgetown, on": [43.6496, -79.9302],
+      "goderich, on": [43.7431, -81.7111],
+      "grimsby, on": [43.1932, -79.5607],
+      "hacienda heights, ca": [33.9931, -117.9687],
+      "haliburton, on": [45.1525, -78.5148],
+      "halifax, ns": [44.6486, -63.5859],
+      "hamiton": [43.2557, -79.8711],
+      "hastings, on": [44.8623, -77.6788],
+      "hepworth, on": [44.6333, -81.134],
+      "hillsburgh, on": [43.7904, -80.144],
+      "holland landing, on": [44.1015, -79.4915],
+      "ilderton, on": [43.0812, -81.3751],
+      "ingersoll, on": [43.0377, -80.8821],
+      "innisfil, on": [44.3151, -79.5461],
+      "jamestown, sc": [33.286, -79.6926],
+      "keswick, on": [44.2396, -79.4687],
+      "king city, on": [43.9295, -79.5252],
+      "kingsville, on": [42.0379, -82.7397],
+      "kleinburg, on": [43.8442, -79.6289],
+      "knoxville, tn": [35.9604, -83.921],
+      "langley, bc": [49.1039, -122.657],
+      "lindsay, on": [44.3551, -78.737],
+      "manilla, on": [44.3084, -78.989],
+      "marmora, on": [44.4828, -77.6823],
+      "merlin, on": [42.2409, -82.2314],
+      "miami, fl": [25.7742, -80.1936],
+      "midhurst, on": [44.4476, -79.7336],
+      "midland, on": [44.7501, -79.8857],
+      "missisuaga, on": [43.589, -79.6441],
+      "napanee, on": [44.2474, -76.9506],
+      "new glasgow, ns": [45.5869, -62.6484],
+      "newcastle, on": [43.9175, -78.5888],
+      "niagara falls": [43.1066, -79.0639],
+      "niagara falls, on": [43.1066, -79.0639],
+      "niagara region": [43.0632, -79.3098],
+      "noelville, on": [46.132, -80.432],
+      "north bay, on": [46.3092, -79.4608],
+      "north york": [43.7543, -79.4491],
+      "north york, on": [43.7543, -79.4491],
+      "norwood, on": [44.3818, -77.9798],
+      "omemee, on": [44.2993, -78.5585],
+      "orangeville, on": [43.9193, -80.0974],
+      "orlando, fl": [28.5421, -81.379],
+      "orleans, on": [45.469, -75.516],
+      "parksville, bc": [49.318, -124.3117],
+      "pefferlaw, on": [44.3146, -79.2029],
+      "petrolia, on": [42.882, -82.1496],
+      "picton, on": [44.0077, -77.1412],
+      "pomona, ca": [34.0554, -117.7517],
+      "port colborne, on": [42.8862, -79.2514],
+      "port hope, on": [43.9516, -78.294],
+      "port union, on": [43.7755, -79.135],
+      "prince edward county, on": [44.0318, -77.2469],
+      "quinte west, on": [44.0988, -77.5749],
+      "richmond, bc": [49.1632, -123.1374],
+      "ridgetown, on": [42.4392, -81.8871],
+      "rockton, on": [43.3006, -80.1259],
+      "saint lin laurentides, qc": [45.8524, -73.7587],
+      "san diego, ca": [32.7157, -117.1638],
+      "saskatoon, sk": [52.1318, -106.6608],
+      "sault ste marie, on": [46.5127, -84.333],
+      "sherbrooke, qc": [45.4033, -71.889],
+      "singhampton, on": [44.3495, -80.253],
+      "south woodslee, on": [42.2027, -82.7185],
+      "st catharines, on": [43.158, -79.2441],
+      "st thomas, on": [42.779, -81.193],
+      "steinbach, mb": [49.5254, -96.6854],
+      "stellarton, ns": [45.5575, -62.6591],
+      "stirling, on": [44.2962, -77.5474],
+      "stoney creek, on": [43.2168, -79.7568],
+      "surrey, bc": [49.1913, -122.8491],
+      "sydenham, on": [44.4108, -76.5967],
+      "tempe, az": [33.4255, -111.94],
+      "thamesville, on": [42.5518, -81.9771],
+      "thorndale, on": [43.11, -81.14],
+      "thornhill, on": [43.8161, -79.4246],
+      "tilbury, on": [42.2593, -82.4323],
+      "timmins, on": [48.4775, -81.3304],
+      "tiny, on": [44.7383, -80.1271],
+      "tottenham": [44.0225, -79.8056],
+      "tottenham, on": [44.0225, -79.8056],
+      "tupperville, on": [42.5901, -82.2696],
+      "uxbridge, on": [44.1089, -79.1227],
+      "val des monts, qc": [45.6919, -75.6894],
+      "vaughan woodbridge, on": [43.7834, -79.6013],
+      "victoria, bc": [48.4283, -123.365],
+      "wallaceburg, on": [42.5929, -82.3874],
+      "wasaga beach, on": [44.5225, -80.0203],
+      "waterford, on": [42.9345, -80.2908],
+      "welland, on": [42.9922, -79.2484],
+      "wellandport, on": [43.004, -79.63],
+      "west lorne, on": [42.6038, -81.6067],
+      "west palm beach, fl": [26.7154, -80.0533],
+      "winnipeg, mb": [49.8955, -97.1385],
+      "woodbridge, on": [43.7849, -79.5924],
+      "woodland, ca": [38.6786, -121.7733],
+      "york, on": [44.0008, -79.4372],
+      "dollard des ormeaux, qc": [45.4842, -73.8065],
+      "eastern passage, ns": [44.6116, -63.4895],
+      "gravenhurst, on": [44.9174, -79.3731],
+      "haileybury, on": [47.4442, -79.6361],
+      "iroquois, on": [44.8493, -75.3151],
+      "kemptville, on": [45.0154, -75.6446],
+      "mount brydges, on": [42.9097, -81.4957],
+      "salt springs, ns": [45.5373, -62.8945],
+      "sydney mines, ns": [46.234, -60.224],
+      "yarker, on": [44.3716, -76.7703]
     };
 
     // --- FALLBACK MOCK DATA ---
@@ -804,6 +1041,43 @@
       return Math.round(R * c * 10) / 10;
     }
 
+    // Stable 0..1 value from a string seed (so a candidate lands the same spot every load)
+    function seededUnit(seed) {
+      let h = 2166136261 >>> 0;
+      const s = String(seed);
+      for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619) >>> 0; }
+      return (h >>> 0) / 4294967296;
+    }
+    // Scatter a point evenly inside a circle of maxKm around baseCoords, seeded so it is stable
+    function scatterWithinCity(baseCoords, seed, maxKm = 7) {
+      const u1 = seededUnit(seed + ':r');
+      const u2 = seededUnit(seed + ':a');
+      const r = Math.sqrt(u1) * maxKm;           // sqrt = even spread across the area
+      const theta = u2 * 2 * Math.PI;
+      const lat = baseCoords[0];
+      const dLat = (r / 111) * Math.cos(theta);
+      const dLng = (r / (111 * Math.cos(lat * Math.PI / 180))) * Math.sin(theta);
+      return keepOffLakeOntario([lat + dLat, baseCoords[1] + dLng], baseCoords);
+    }
+    // Rough Lake Ontario shorelines (Hamilton to Cobourg) as [lng, lat], so GTA scatter never lands in the lake.
+    const LAKE_ONTARIO_NORTH = [[-79.88,43.29],[-79.80,43.322],[-79.71,43.395],[-79.666,43.443],[-79.585,43.548],[-79.535,43.585],[-79.47,43.625],[-79.415,43.628],[-79.38,43.64],[-79.30,43.665],[-79.25,43.69],[-79.20,43.72],[-79.14,43.77],[-79.09,43.81],[-79.02,43.83],[-78.94,43.855],[-78.84,43.87],[-78.69,43.88],[-78.55,43.89],[-78.29,43.945],[-78.17,43.955]];
+    const LAKE_ONTARIO_SOUTH = [[-79.88,43.27],[-79.79,43.27],[-79.75,43.24],[-79.63,43.22],[-79.56,43.21],[-79.45,43.19],[-79.26,43.20],[-79.07,43.26],[-78.90,43.30],[-78.17,43.30]];
+    const shoreLatAt = (line, lng) => {
+      for (let i = 1; i < line.length; i++) {
+        const [x0, y0] = line[i - 1], [x1, y1] = line[i];
+        if (lng <= x1) return y0 + (y1 - y0) * ((lng - x0) / (x1 - x0));
+      }
+      return line[line.length - 1][1];
+    };
+    function keepOffLakeOntario(point, baseCoords) {
+      const [lat, lng] = point;
+      if (lng < -79.88 || lng > -78.17) return point;
+      const north = shoreLatAt(LAKE_ONTARIO_NORTH, lng), south = shoreLatAt(LAKE_ONTARIO_SOUTH, lng);
+      if (lat <= south || lat >= north) return point;
+      // Mirror back across the shore on the city's side (north shore for GTA, south shore for Niagara and Hamilton).
+      return baseCoords[0] >= north - 0.02 ? [north + (north - lat) + 0.003, lng] : [south - (lat - south) - 0.003, lng];
+    }
+
     // --- ROBUST CSV PARSER ---
     function parseCSV(text) {
       const lines = [];
@@ -909,6 +1183,40 @@
       }
 
       return null;
+    }
+
+    // Candidate locations are city + province only. Province-only rows get a clearly approximate province point.
+    const PROVINCE_CENTERS = {
+      on: [49.25, -84.5], qc: [52.0, -72.0], bc: [53.7, -127.6], ab: [54.5, -115.0], mb: [54.5, -97.5],
+      sk: [54.0, -106.0], ns: [45.1, -63.0], nb: [46.5, -66.2], nl: [53.1, -57.7], pe: [46.4, -63.2]
+    };
+    const PROVINCE_ALIASES = { ontario:'on', quebec:'qc', 'british columbia':'bc', alberta:'ab', manitoba:'mb', saskatchewan:'sk',
+      'nova scotia':'ns', 'new brunswick':'nb', newfoundland:'nl', 'prince edward island':'pe' };
+    const PROVINCE_RE = /,\s*(on|qc|bc|ab|mb|sk|ns|nb|nl|pe)\b|\b(ontario|quebec|british columbia|alberta|manitoba|saskatchewan|nova scotia|new brunswick|newfoundland|prince edward island)\b/;
+    // First place-like segment of a free-text candidate location, normalized to the CITY_COORDINATES key shape.
+    const primaryCityKey = loc => String(loc || '')
+      .split(/\s*[|(;\/\n]\s*|\s*-\s+|\s+-\s*|(?<!\b(?:st|ste|mt))\.\s+|[,\s]\s*(?:open|willing|relocat\w*|currently|but|comfortable|prefers|preferably|lives|drives|looking|would|flexible|realistic|commut\w*|g licence)\b/i)[0]
+      .toLowerCase().replace(/^(?:currently based in|currently in|based in|lives in|resides in)\s+/, '')
+      .replace(/[^\w\s,]/g, ' ').replace(/\s+/g, ' ').replace(/\s*,\s*/g, ', ').trim()
+      .replace(/^([a-z ]+?),? (on|ontario|qc|quebec|bc|ab|alberta|mb|sk|ns|nova scotia|nb|nl|pe)$/, (m, city, prov) => `${city}, ${PROVINCE_ALIASES[prov] || prov}`)
+      .replace(/, canada$/, '').replace(/ area(?=,|$)/, '').replace(/ [a-z]\d[a-z] ?\d[a-z]\d$/, '').trim();
+    function resolveCandidateLocation(loc) {
+      const key = primaryCityKey(loc);
+      if (!key) return { coords: null, approxLevel: null, cityKey: '' };
+      if (CITY_COORDINATES[key]) return { coords: CITY_COORDINATES[key], approxLevel: 'city', cityKey: key };
+      try {
+        const cached = JSON.parse(localStorage.getItem('tttg_geo_cache') || '{}')[`cand:${key}`];
+        if (validCoords(cached)) return { coords: cached, approxLevel: 'city', cityKey: key };
+      } catch (e) {}
+      if (key.length >= 4) {
+        const hit = Object.keys(CITY_COORDINATES).find(k => k.startsWith(`${key},`) || key.startsWith(`${k.split(',')[0]},`));
+        if (hit) return { coords: CITY_COORDINATES[hit], approxLevel: 'city', cityKey: key };
+      }
+      const legacy = resolveCoordinates(loc);
+      if (legacy) return { coords: legacy.latLng, approxLevel: 'city', cityKey: key };
+      const prov = String(loc).toLowerCase().match(PROVINCE_RE);
+      const code = prov && (prov[1] || PROVINCE_ALIASES[prov[2]]);
+      return { coords: code ? PROVINCE_CENTERS[code] : null, approxLevel: code ? 'province' : null, cityKey: key, needsGeocode: true };
     }
 
     // --- JSONP GOOGLE SHEETS FETCHER ---
@@ -1021,7 +1329,7 @@
       const [selectedCandidateGroup, setSelectedCandidateGroup] = useState(null);
       const [candidateCityFilterText, setCandidateCityFilterText] = useState('');
       const [showJobsLayer, setShowJobsLayer] = useState(true);
-      const [showCandidatesLayer, setShowCandidatesLayer] = useState(true);
+      const [showCandidatesLayer, setShowCandidatesLayer] = useState(false);
       const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
       const [activeTab, setActiveTab] = useState('map');
       const [isDesktop, setIsDesktop] = useState(() => window.matchMedia('(min-width: 1024px)').matches);
@@ -1039,6 +1347,7 @@
       const [candidateMatchScope, setCandidateMatchScope] = useState('relevant');
       const [drawerTab, setDrawerTab] = useState('role'); // 'role' | 'candidates'
       const [candidateSearchText, setCandidateSearchText] = useState('');
+      const [radiusKm, setRadiusKm] = useState(50); // number (km) | 'ALL'
       const [trackerLinkWarning, setTrackerLinkWarning] = useState('');
       const [userLocation, setUserLocation] = useState(null);
 
@@ -1112,6 +1421,10 @@
       const userMarkerRef = useRef(null);
       const radiusCircleRef = useRef(null);
       const hasInitiallyFittedRef = useRef(false);
+      const candidateGeocodeRunningRef = useRef(false);
+      const candidatesLayerTouchedRef = useRef(false);
+      const radiusCircleJobRef = useRef(null);
+      const [mapBounds, setMapBounds] = useState(null);
 
       const CSV_URL = 'https://docs.google.com/spreadsheets/d/1RexJFAEWRwNjzeGThutrA0zMObu2g4r3q0Vu0uiDbQs/gviz/tq?tqx=out:csv&sheet=Jobs';
       const TRACKER_SUBMISSIONS_GID = '1403113153'; // Ja-provided Tracker source tab, read-only.
@@ -1239,7 +1552,7 @@
           const links = getCandidateLinks(cand);
           const licenses = (cand['Licenses'] || cand['License & Certifications'] || cand['Certifications'] || cand.licenses || '').trim();
 
-          const coordData = resolveCoordinates(loc);
+          const place = resolveCandidateLocation(loc);
 
           return {
             id: `cand_${idx}`,
@@ -1256,9 +1569,45 @@
             submittedOn,
             ...links,
             licenses,
-            coords: coordData ? coordData.latLng : null
+            coords: place.coords,
+            approxLevel: place.approxLevel,
+            cityKey: place.cityKey,
+            needsGeocode: !!place.needsGeocode
           };
         }).filter(c => c.name);
+      };
+
+      // One-time background geocode for candidate cities missing from CITY_COORDINATES (city level only, cached locally).
+      const geocodeCandidateCities = async (list) => {
+        if (candidateGeocodeRunningRef.current) return;
+        candidateGeocodeRunningRef.current = true;
+        try { await geocodeCandidateCityKeys(list); } finally { candidateGeocodeRunningRef.current = false; }
+      };
+      const geocodeCandidateCityKeys = async (list) => {
+        let cache = {};
+        try { cache = JSON.parse(localStorage.getItem('tttg_geo_cache') || '{}'); } catch (e) {}
+        const keys = [...new Set(list.filter(c => c.needsGeocode && c.cityKey && c.cityKey.split(' ').length <= 5).map(c => c.cityKey))]
+          .filter(key => !(`cand:${key}` in cache));
+        for (const key of keys) {
+          try {
+            await new Promise(r => setTimeout(r, 1100));
+            const q = key.includes(',') ? key : `${key}, Ontario`;
+            const res = await fetch(`https://nominatim.openstreetmap.org/search?format=jsonv2&limit=1&countrycodes=ca,us&q=${encodeURIComponent(q)}`, { headers: { 'Accept-Language': 'en' } });
+            const data = await res.json();
+            const hit = data && data[0];
+            const placeTypes = ['city','town','village','hamlet','suburb','municipality','neighbourhood','quarter','borough','city_district','locality'];
+            const ok = hit && placeTypes.includes(hit.addresstype) && hit.display_name.toLowerCase().includes(key.split(/[ ,]/)[0]);
+            // null marks a failed lookup so it is not retried every load
+            cache[`cand:${key}`] = ok ? [parseFloat(hit.lat), parseFloat(hit.lon)] : null;
+            localStorage.setItem('tttg_geo_cache', JSON.stringify(cache));
+            if (ok) {
+              setCandidates(prev => prev.map(c => c.cityKey === key && c.needsGeocode
+                ? { ...c, coords: cache[`cand:${key}`], approxLevel: 'city', needsGeocode: false } : c));
+            }
+          } catch (err) {
+            console.warn('Candidate city geocode failed for:', key, err);
+          }
+        }
       };
 
       // 1. Fetch Data (Jobs & Candidates Concurrently)
@@ -1338,16 +1687,13 @@
           const enriched = expandAndEnrichJobs(activeJobs);
           setJobs(enriched);
 
-          if (loadedCandidates.length > 0) {
-            setCandidates(await withTrackerLinks(loadedCandidates));
-          } else {
-            setCandidates(await withTrackerLinks([]));
-          }
+          const finalCandidates = await withTrackerLinks(loadedCandidates);
+          setCandidates(finalCandidates);
 
           setLastUpdated(new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
 
           // Trigger asynchronous background precision geocoder for exact addresses
-          geocodeExactAddresses(enriched);
+          geocodeExactAddresses(enriched).then(() => geocodeCandidateCities(finalCandidates));
         } catch (err) {
           console.warn('Live data refresh failed:', err.message);
           setError('Live records could not be refreshed. Please retry.');
@@ -1391,6 +1737,8 @@
           }).addTo(map);
 
           mapInstanceRef.current = map;
+          // Candidate pins load for the visible area only; re-plot after each pan or zoom.
+          map.on('moveend', () => setMapBounds(map.getBounds()));
 
           // Force Leaflet to recalculate container dimensions & fetch all missing tiles
           const sizeTimer = setTimeout(() => {
@@ -1429,7 +1777,7 @@
         }
       }, [jobs, searchCoords, activeTab, sidebarWidth, isSidebarCollapsed, isDesktop]);
 
-      // Preserve known locations; clustering and spiderfying handle shared city coordinates.
+      // Deterministic in-city scatter so candidates never stack on one city-center point.
       const spreadCandidates = useMemo(() => {
         const groups = new Map();
         candidates.forEach(cand => {
@@ -1438,130 +1786,31 @@
           if (!groups.has(key)) groups.set(key, []);
           groups.get(key).push(cand);
         });
-        return candidates.map(cand => ({ ...cand,
-          spreadCoords: validCoords(cand.coords) ? cand.coords : null,
-          cityCandidates: validCoords(cand.coords) ? groups.get(cand.coords.join(',')) : []
-        }));
+        // Seed from identity, not row index, so a candidate keeps its spot when rows are added. Repeat rows get #2, #3.
+        const seen = new Map();
+        return candidates.map(cand => {
+          if (!validCoords(cand.coords)) return { ...cand, spreadCoords: null, cityCandidates: [] };
+          const identity = [cand.name, cand.title, cand.company, cand.location].map(normalizeIdentity).join('|');
+          const count = (seen.get(identity) || 0) + 1;
+          seen.set(identity, count);
+          // province-only (no city hit) gets a wider, clearly-approximate scatter
+          const maxKm = cand.approxLevel === 'province' ? 40 : 7;
+          return { ...cand,
+            spreadCoords: scatterWithinCity(cand.coords, count > 1 ? `${identity}#${count}` : identity, maxKm),
+            cityCandidates: groups.get(cand.coords.join(','))
+          };
+        });
       }, [candidates]);
 
-      // 3. Update independent job pins and clustered candidate markers
-      useEffect(() => {
-        const map = mapInstanceRef.current;
-        if (!map) return;
+      // (Map pin effects live below matchedCandidates so their dependencies are defined first.)
 
-        // Clear previous job markers
-        Object.values(markersRef.current).forEach(m => map.removeLayer(m));
-        markersRef.current = {};
-
-        // Clear previous candidate markers
-        Object.values(candidateCityMarkersRef.current).forEach(marker => map.removeLayer(marker));
-        if (candidateClusterRef.current) {
-          map.removeLayer(candidateClusterRef.current);
-          candidateClusterRef.current.clearLayers();
-          candidateClusterRef.current = null;
-        }
-        candidateCityMarkersRef.current = {};
-
-        // 3a. Plot Jobs (when showJobsLayer is active)
-        if (showJobsLayer) {
-          processedJobs.forEach(job => {
-            if (!validCoords(job.coords)) return;
-            const [lat, lng] = job.coords;
-            const isSelected = selectedJob && selectedJob.id === job.id;
-
-            const customIcon = L.divIcon({
-              html: `<div class="job-money-marker ${isSelected ? 'is-selected' : ''}">💰</div>`,
-              className: 'custom-job-pin', iconSize: [44, 44], iconAnchor: [22, 56], popupAnchor: [0, -56]
-            });
-            const marker = L.marker([lat, lng], { icon: customIcon, zIndexOffset: 2000, title: job['Job Title'] });
-
-            marker.bindTooltip(`
-              <div class="px-1.5 py-1">
-                <p class="font-semibold text-stone-900 text-xs">${escapeHtml(job['Job Title'])}</p>
-                <p class="text-stone-500 text-[10px]">${escapeHtml(job['Company'])}</p>
-                <p class="text-stone-700 text-[10px] mt-0.5 font-medium">📌 ${escapeHtml(job.displayLocation)}${job.isMultiLocation ? ` (Site ${job.locationIndex}/${job.totalLocations})` : ''}</p>
-              </div>
-            `, { direction: 'top', offset: [0, -18], opacity: 0.98, className: 'leaflet-popup-content-wrapper p-2' });
-
-            marker.on('click', () => {
-              setSelectedCandidateGroup(null);
-              handleSelectJob(job);
-              const el = document.getElementById(`job-card-${job.id}`);
-              if (el) {
-                el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-              }
-            });
-
-            marker.addTo(map);
-            markersRef.current[job.id] = marker;
-          });
-        }
-
-        // 3b. Cluster candidate pins; shared locations spiderfy at maximum zoom.
-        if (showCandidatesLayer) {
-          const cluster = L.markerClusterGroup({
-            maxClusterRadius: 55, showCoverageOnHover: false,
-            spiderfyOnMaxZoom: true, spiderfyDistanceMultiplier: 1.5,
-            iconCreateFunction: group => L.divIcon({
-              html: `<span>${group.getChildCount()}</span>`, className: 'candidate-cluster',
-              iconSize: [42, 42], iconAnchor: [21, 21]
-            })
-          });
-          candidateClusterRef.current = cluster;
-          spreadCandidates.forEach(cand => {
-            const plotCoords = cand.spreadCoords || cand.coords;
-            if (!validCoords(plotCoords)) return;
-
-            const isPinned = pinnedCandidateId === cand.id;
-
-            const candIcon = createCandidateIcon(isPinned);
-            const marker = L.marker(plotCoords, { icon: candIcon, title: cand.name });
-
-            marker.bindTooltip(`
-              <div class="px-2 py-1 text-center">
-                <p class="font-bold text-stone-900 text-xs">${escapeHtml(cand.name)}</p>
-                <p class="text-stone-600 text-[10px] font-medium">${escapeHtml(cand.title)}</p>
-                <p class="text-stone-500 text-[9px] mt-0.5">📌 ${escapeHtml(cand.location)}</p>
-                ${cand.company ? `<p class="text-stone-400 text-[9px]">🏢 ${escapeHtml(cand.company)}</p>` : ''}
-                <p class="text-stone-400 text-[9px] mt-1">Click to view candidate details</p>
-              </div>
-            `, { direction: 'top', offset: [0, -18], opacity: 0.98, className: 'leaflet-popup-content-wrapper p-2' });
-
-            marker.on('click', () => {
-              setSelectedJob(null);
-              setPinnedCandidateId(cand.id);
-              setSelectedCandidateGroup({
-                key: cand.location,
-                cityName: cand.location,
-                coords: cand.coords,
-                candidates: cand.cityCandidates || [cand],
-                selectedCandidateId: cand.id
-              });
-              if (mapInstanceRef.current) {
-                mapInstanceRef.current.flyTo(plotCoords, Math.max(mapInstanceRef.current.getZoom(), 10), { duration: 0.8 });
-              }
-            });
-
-            if (isPinned) marker.addTo(map);
-            else cluster.addLayer(marker);
-            candidateCityMarkersRef.current[cand.id] = marker;
-          });
-          cluster.addTo(map);
-        }
-
-        // Focus Toronto, ON comfortably once on initial load (avoids clumping)
-        if (!hasInitiallyFittedRef.current && !searchCoords && !selectedJob && !selectedCandidateGroup) {
-          map.setView([43.6625, -79.3900], 13);
-          hasInitiallyFittedRef.current = true;
-        }
-        map.invalidateSize();
-      }, [processedJobs, spreadCandidates, selectedJob, selectedCandidateGroup, pinnedCandidateId, showJobsLayer, showCandidatesLayer, searchCoords, isAuthenticated]);
 
       // 4. Geocode Location Search (Multi-stage fallback for partial & full addresses)
       const handleLocationSearch = async (e) => {
         if (e) e.preventDefault();
         const query = searchQuery.trim();
         setSearchError(null);
+        setShowSuggestions(false);
 
         if (!query) {
           setSearchCoords(null);
@@ -1928,6 +2177,7 @@
         setDrawerTab('role');
         setCandidateMatchScope('relevant');
         setCandidateSearchText('');
+        setRadiusKm(50);
         if (connectionLineRef.current && mapInstanceRef.current) {
           mapInstanceRef.current.removeLayer(connectionLineRef.current);
           connectionLineRef.current = null;
@@ -1941,7 +2191,9 @@
           const currentZoom = mapInstanceRef.current.getZoom();
           // Keep view wide enough (max zoom 9 instead of 11) so nearby pins don't disappear off-screen
           const targetZoom = Math.min(Math.max(currentZoom, 8.5), 9.5);
-          mapInstanceRef.current.flyTo(job.coords, targetZoom, { duration: 0.8 });
+          // A hidden map (mobile List tab) has zero size and cannot animate a fly.
+          if (mapInstanceRef.current.getSize().x > 0) mapInstanceRef.current.flyTo(job.coords, targetZoom, { duration: 0.8 });
+          else mapInstanceRef.current.setView(job.coords, targetZoom, { animate: false });
           const marker = markersRef.current[job.id];
           if (marker) {
             marker.openTooltip();
@@ -1949,13 +2201,21 @@
         }
       };
 
-      // Rank by role evidence, never by coordinates or distance. Unknown locations remain eligible.
+      // Rank title match first, then industry, then city-level distance. Unknown locations remain eligible.
       const matchedCandidates = useMemo(() => {
         if (!selectedJob) return [];
         return spreadCandidates
           .map(cand => {
             const relevance = getCandidateRelevance(selectedJob, cand);
-            return relevance ? { ...cand, ...relevance } : null;
+            if (!relevance) return null;
+            let distanceKm = null;
+            if (validCoords(selectedJob.coords) && validCoords(cand.coords) && cand.approxLevel !== 'province') {
+              distanceKm = calculateDistance(
+                selectedJob.coords[0], selectedJob.coords[1],
+                cand.coords[0], cand.coords[1], 'km'   // use city center, not the scattered point
+              );
+            }
+            return { ...cand, ...relevance, distanceKm };
           })
           .filter(cand => {
             if (!cand) return false;
@@ -1966,8 +2226,177 @@
             const text = `${cand.name} ${cand.title} ${cand.location} ${cand.company} ${cand.notes} ${cand.industry}`.toLowerCase();
             return !query || text.includes(query);
           })
-          .sort((a, b) => a.matchTier - b.matchTier || a.name.localeCompare(b.name));
-      }, [selectedJob, spreadCandidates, candidateMatchScope, candidateSearchText]);
+          .filter(cand => {
+            // radius dial: keep in-radius always; keep out-of-radius (or unknown location) only if strong title match
+            if (radiusKm === 'ALL') return true;
+            if (cand.distanceKm !== null && cand.distanceKm <= radiusKm) return true;
+            return cand.matchTier === 0;   // strong title match survives the wall
+          })
+          .sort((a, b) =>
+            a.matchTier - b.matchTier ||
+            ((a.distanceKm ?? 1e9) - (b.distanceKm ?? 1e9)) ||
+            a.name.localeCompare(b.name)
+          );
+      }, [selectedJob, spreadCandidates, candidateMatchScope, candidateSearchText, radiusKm]);
+
+      // Candidates show only once a job is picked or a location is searched, unless the user turned them off.
+      useEffect(() => {
+        if (selectedJob || searchCoords) {
+          if (!candidatesLayerTouchedRef.current) setShowCandidatesLayer(true);
+        } else {
+          setShowCandidatesLayer(false);
+          candidatesLayerTouchedRef.current = false;
+        }
+      }, [selectedJob, searchCoords]);
+      const candidatesInPlay = !!(selectedJob || searchCoords);
+      const candidatesOnMap = candidatesInPlay && showCandidatesLayer;
+      // With a job picked, the map shows that job's matches; with only a search, everyone near the search.
+      const mapCandidatePool = useMemo(() => {
+        if (selectedJob) return matchedCandidates;
+        if (!searchCoords) return [];
+        const dist = c => validCoords(c.spreadCoords) ? calculateDistance(searchCoords[0], searchCoords[1], c.spreadCoords[0], c.spreadCoords[1]) : 1e9;
+        return [...spreadCandidates].sort((a, b) => dist(a) - dist(b));
+      }, [selectedJob, matchedCandidates, searchCoords, spreadCandidates]);
+
+      // 3a. Job pins (independent, always visible)
+      useEffect(() => {
+        const map = mapInstanceRef.current;
+        if (!map) return;
+
+        Object.values(markersRef.current).forEach(m => map.removeLayer(m));
+        markersRef.current = {};
+
+        if (showJobsLayer) {
+          processedJobs.forEach(job => {
+            if (!validCoords(job.coords)) return;
+            const [lat, lng] = job.coords;
+            const isSelected = selectedJob && selectedJob.id === job.id;
+
+            const customIcon = L.divIcon({
+              html: `<div class="job-money-marker ${isSelected ? 'is-selected' : ''}">💰</div>`,
+              className: 'custom-job-pin', iconSize: [44, 44], iconAnchor: [22, 56], popupAnchor: [0, -56]
+            });
+            const marker = L.marker([lat, lng], { icon: customIcon, zIndexOffset: 2000, title: job['Job Title'] });
+
+            marker.bindTooltip(`
+              <div class="px-1.5 py-1">
+                <p class="font-semibold text-stone-900 text-xs">${escapeHtml(job['Job Title'])}</p>
+                <p class="text-stone-500 text-[10px]">${escapeHtml(job['Company'])}</p>
+                <p class="text-stone-700 text-[10px] mt-0.5 font-medium">📌 ${escapeHtml(job.displayLocation)}${job.isMultiLocation ? ` (Site ${job.locationIndex}/${job.totalLocations})` : ''}</p>
+              </div>
+            `, { direction: 'top', offset: [0, -18], opacity: 0.98, className: 'leaflet-popup-content-wrapper p-2' });
+
+            marker.on('click', () => {
+              setSelectedCandidateGroup(null);
+              handleSelectJob(job);
+            });
+
+            marker.addTo(map);
+            markersRef.current[job.id] = marker;
+          });
+        }
+
+        // Focus Toronto, ON comfortably once on initial load (avoids clumping)
+        if (!hasInitiallyFittedRef.current && !searchCoords && !selectedJob && !selectedCandidateGroup) {
+          map.setView([43.6625, -79.3900], 13);
+          hasInitiallyFittedRef.current = true;
+        }
+        map.invalidateSize();
+      }, [processedJobs, selectedJob, showJobsLayer, isAuthenticated]);
+
+      // 3b. Candidate pins: only those inside the current view, scattered inside their city, capped for safety.
+      useEffect(() => {
+        const map = mapInstanceRef.current;
+        if (!map) return;
+
+        Object.values(candidateCityMarkersRef.current).forEach(marker => map.removeLayer(marker));
+        candidateCityMarkersRef.current = {};
+        if (candidateClusterRef.current) {
+          map.removeLayer(candidateClusterRef.current);
+          candidateClusterRef.current.clearLayers();
+          candidateClusterRef.current = null;
+        }
+        if (!candidatesOnMap) return;
+
+        const cluster = L.markerClusterGroup({
+          maxClusterRadius: 45,
+          showCoverageOnHover: false,
+          spiderfyOnMaxZoom: false,        // was true, this was the swirl
+          zoomToBoundsOnClick: true,
+          disableClusteringAtZoom: 14,     // street-level zoom shows every scattered pin
+          animate: false,                  // no spin
+          iconCreateFunction: group => L.divIcon({
+            html: `<span>${group.getChildCount()}</span>`, className: 'candidate-cluster',
+            iconSize: [42, 42], iconAnchor: [21, 21]
+          })
+        });
+        candidateClusterRef.current = cluster;
+
+        const bounds = map.getBounds();
+        const MAX_PINS = 300;
+        let plotted = 0;
+        mapCandidatePool.forEach(cand => {
+          const plotCoords = cand.spreadCoords || cand.coords;
+          if (!validCoords(plotCoords)) return;
+          if (!bounds.contains(plotCoords)) return;     // only what is visible
+          if (plotted >= MAX_PINS) return;
+          plotted++;
+
+          const isPinned = pinnedCandidateId === cand.id;
+          const marker = L.marker(plotCoords, { icon: createCandidateIcon(isPinned), title: cand.name });
+
+          marker.bindTooltip(`
+            <div class="px-2 py-1 text-center">
+              <p class="font-bold text-stone-900 text-xs">${escapeHtml(cand.name)}</p>
+              <p class="text-stone-600 text-[10px] font-medium">${escapeHtml(cand.title)}</p>
+              <p class="text-stone-500 text-[9px] mt-0.5">📌 ${escapeHtml(cand.location)} (approx.)</p>
+              ${cand.company ? `<p class="text-stone-400 text-[9px]">🏢 ${escapeHtml(cand.company)}</p>` : ''}
+              <p class="text-stone-400 text-[9px] mt-1">Click to view candidate details</p>
+            </div>
+          `, { direction: 'top', offset: [0, -18], opacity: 0.98, className: 'leaflet-popup-content-wrapper p-2' });
+
+          marker.on('click', () => {
+            setPinnedCandidateId(cand.id);
+            if (selectedJob) {
+              // Keep the job pinned; jump to this candidate in the matches panel.
+              setActiveTab(prev => prev === 'map' && !isDesktop ? 'matches' : prev);
+              setTimeout(() => {
+                const el = document.querySelector(`[data-candidate-id="${cand.id}"]`);
+                if (el) el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+              }, 50);
+              return;
+            }
+            setSelectedCandidateGroup({
+              key: cand.location,
+              cityName: cand.location,
+              coords: cand.coords,
+              candidates: cand.cityCandidates || [cand],
+              selectedCandidateId: cand.id
+            });
+          });
+
+          if (isPinned) marker.addTo(map);
+          else cluster.addLayer(marker);
+          candidateCityMarkersRef.current[cand.id] = marker;
+        });
+        cluster.addTo(map);
+      }, [mapCandidatePool, candidatesOnMap, pinnedCandidateId, mapBounds, selectedJob, isDesktop, isAuthenticated]);
+
+      // Radius dial outline around the picked job
+      useEffect(() => {
+        const map = mapInstanceRef.current;
+        if (!map) return;
+        if (radiusCircleJobRef.current) {
+          map.removeLayer(radiusCircleJobRef.current);
+          radiusCircleJobRef.current = null;
+        }
+        if (selectedJob && validCoords(selectedJob.coords) && radiusKm !== 'ALL') {
+          radiusCircleJobRef.current = L.circle(selectedJob.coords, {
+            radius: radiusKm * 1000, color: '#2B2723', fillColor: '#787165', fillOpacity: 0.05,
+            weight: 1.25, dashArray: '4, 6', interactive: false
+          }).addTo(map);
+        }
+      }, [selectedJob, radiusKm, isAuthenticated]);
 
       // Candidates inside the selected candidate city cluster, filtered by city text search
       const filteredCityCandidates = useMemo(() => {
@@ -2020,6 +2449,7 @@
         candMarker.addTo(map);
         candidateMarkersRef.current[cand.id] = candMarker;
 
+        if (!isDesktop) setActiveTab('map');
         map.setView(targetCoords, Math.max(map.getZoom(), 12));
       };
 
@@ -2096,6 +2526,7 @@
           candidateMarkersRef.current = {};
           setPinnedCandidateId(null);
           setDrawerTab('role');
+          setActiveTab(prev => prev === 'matches' ? 'list' : prev);
         }
       }, [selectedJob]);
 
@@ -2107,6 +2538,113 @@
         await navigator.clipboard.writeText(text);
         setCopiedId(job.id);
         setTimeout(() => setCopiedId(null), 2500);
+      };
+
+      // Candidate distance is a city-level estimate, never exact.
+      const candidateDistanceLabel = cand => cand.approxLevel === 'province' ? 'Province-level location'
+        : cand.distanceKm === null || cand.distanceKm === undefined ? ''
+        : cand.distanceKm < 5 ? 'Under 5 km (approx, city level)' : `About ${Math.round(cand.distanceKm)} km (approx, city level)`;
+
+      const renderJobCard = (job) => {
+        const isSelected = selectedJob && selectedJob.id === job.id;
+        return (
+          <div
+            id={`job-card-${job.id}`}
+            key={job.id}
+            onClick={() => handleSelectJob(job)}
+            className={`p-4 rounded-xl border transition-colors cursor-pointer relative bg-white ${
+              isSelected ? 'border-stone-900 ring-1 ring-stone-900' : 'border-stone-200 hover:border-stone-400'
+            }`}
+          >
+            {/* Top row: Title + Salary / Rate */}
+            <div className="flex items-start justify-between gap-3">
+              <div className="flex-1 min-w-0">
+                <h3 className="font-bold text-stone-900 text-sm leading-snug">{job['Job Title']}</h3>
+                <p className="text-xs text-stone-700 mt-0.5">{job['Company']}</p>
+              </div>
+              <span className="text-[11px] font-semibold text-stone-900 whitespace-nowrap shrink-0 pt-0.5">
+                {job['Compensation'] || 'Competitive'}
+              </span>
+            </div>
+
+            {/* Location & Proximity Distance */}
+            <div className="mt-2.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-stone-700">
+              <span>{job.displayLocation}</span>
+              {job.isMultiLocation && <span className="text-stone-500">Site {job.locationIndex} of {job.totalLocations}</span>}
+              {job.distance !== null && job.distance !== undefined && <span className="font-semibold text-stone-900">{job.distance} {unit} away</span>}
+            </div>
+
+            {/* Recruiter & Quick Action */}
+            <div className="mt-3 pt-2.5 border-t border-stone-100 flex items-center justify-between text-xs">
+              <span className="text-stone-500 text-[11px]">
+                Owner: <span className="text-stone-900 font-medium">{job['Owners'] || 'N/A'}</span>
+              </span>
+              <div className="flex items-center gap-1 text-stone-600">
+                <CopyButton onCopy={() => copyJobPitch(job)} copied={copiedId === job.id} label="Copy job pitch" />
+                {isSelected && <span className="text-[11px] font-semibold text-stone-900 pl-1">Pinned</span>}
+              </div>
+            </div>
+          </div>
+        );
+      };
+
+      const renderCandidateCard = (cand) => {
+        const isPinned = pinnedCandidateId === cand.id;
+        const distanceLabel = candidateDistanceLabel(cand);
+        return (
+          <div
+            key={cand.id}
+            data-candidate-id={cand.id}
+            className={`p-3.5 rounded-xl border bg-white transition-colors ${
+              isPinned ? 'border-stone-900 ring-1 ring-stone-900' : 'border-stone-200 hover:border-stone-400'
+            }`}
+          >
+            {/* Name, title, match type */}
+            <div className="flex items-start justify-between gap-2">
+              <div className="flex-1 min-w-0">
+                <h5 className="font-bold text-[13px] text-stone-900">{cand.name}</h5>
+                <p className="text-xs text-stone-900 mt-0.5">{cand.title}</p>
+                {cand.company && <p className="text-[11px] text-stone-600 mt-0.5">{cand.company}</p>}
+              </div>
+              <span title={cand.matchReason} className="text-[10px] border border-stone-300 text-stone-900 px-1.5 py-0.5 rounded font-semibold shrink-0">
+                {cand.matchLabel}
+              </span>
+            </div>
+
+            <p className="mt-2 text-[11px] text-stone-700">{cand.matchReason}</p>
+
+            <div className="mt-2 space-y-1 text-[11px] text-stone-700">
+              <p>
+                <span className="font-medium text-stone-900">{cand.location || 'Location not provided'}</span>
+                {distanceLabel && <span className="text-stone-600">{`, ${distanceLabel}`}</span>}
+              </p>
+              {cand.compensationTarget && <p>Comp: <span className="text-stone-900">{cand.compensationTarget}</span></p>}
+              {cand.industry && <p>Industry: <span className="text-stone-900">{cand.industry}</span></p>}
+              {cand.shift && <p>Shift: <span className="text-stone-900">{cand.shift}</span></p>}
+              {cand.notes && (
+                <p className="p-2 rounded-lg text-[10.5px] mt-1.5 leading-relaxed bg-stone-50 border border-stone-200/70 text-stone-700">
+                  <b className="text-stone-900">Notes:</b> {cand.notes}
+                </p>
+              )}
+            </div>
+
+            <CandidateSubmissionLink candidate={cand} />
+            {/* Actions Row */}
+            <div className="mt-2.5 pt-2 border-t border-stone-100 flex items-center justify-between text-xs">
+              <button
+                onClick={() => handlePinCandidateOnMap(cand)}
+                disabled={!validCoords(cand.coords)}
+                title={validCoords(cand.coords) ? 'Show approximate reported location' : 'No reported location available'}
+                className={`px-2.5 py-1 rounded-md font-medium text-[11px] transition-colors border disabled:opacity-40 disabled:cursor-not-allowed ${
+                  isPinned ? 'bg-stone-900 text-white border-stone-900' : 'bg-white hover:bg-stone-100 text-stone-900 border-stone-300'
+                }`}
+              >
+                {isPinned ? 'Shown on map' : 'Show on map'}
+              </button>
+              <CopyButton onCopy={() => copyCandidatePitch(cand)} copied={copiedId === cand.id} label="Copy candidate summary" className="text-stone-600" />
+            </div>
+          </div>
+        );
       };
 
       // LOCK SCREEN (Refined Warm Stone Aesthetic)
@@ -2172,40 +2710,42 @@
         <div className="flex flex-col h-screen w-screen overflow-hidden bg-[#FAF9F6] font-sans text-stone-900">
 
           {/* EXECUTIVE HEADER */}
-          <header className="h-16 border-b border-stone-200 bg-white/90 backdrop-blur px-4 lg:px-6 flex items-center justify-between shrink-0 z-30">
-            <div className="flex items-center gap-3">
-              <div className="w-9 h-9 rounded-xl bg-stone-900 flex items-center justify-center shadow-sm text-white text-base">
-                💼
+          <header className="h-14 lg:h-16 border-b border-stone-200 bg-white px-3 lg:px-6 flex items-center justify-between gap-2 shrink-0 z-30">
+            <div className="flex items-center gap-3 min-w-0">
+              <div className="hidden sm:flex w-9 h-9 rounded-lg bg-stone-900 items-center justify-center text-white text-[11px] font-bold tracking-wide shrink-0">
+                TTTG
               </div>
-              <div>
-                <h1 className="font-bold text-sm text-stone-900 tracking-tight">Top Tier Talent Group</h1>
-                <p className="text-[11px] text-stone-500 hidden sm:block">Proximity recruiter search & distance calculator</p>
+              <div className="min-w-0">
+                <h1 className="font-bold text-sm text-stone-900 whitespace-nowrap truncate">Top Tier Talent Group</h1>
+                <p className="text-[11px] text-stone-600 hidden sm:block">Job map and candidate matching</p>
               </div>
             </div>
 
             {/* Quick Status & Actions */}
             <div className="flex items-center gap-2.5">
-              <div className="hidden md:flex items-center gap-2 bg-stone-50 px-3 py-1 rounded-lg border border-stone-200 text-xs text-stone-600">
-                <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
-                <span><b>{jobs.length}</b> Active Roles</span>
-                {lastUpdated && <span className="text-stone-400">| Synced {lastUpdated}</span>}
+              <div className="hidden md:flex items-center gap-2 px-1 text-xs text-stone-700">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-600"></span>
+                <span><b className="text-stone-900">{jobs.length}</b> active roles</span>
+                {lastUpdated && <span className="text-stone-500">Synced {lastUpdated}</span>}
               </div>
 
               <button
                 onClick={fetchJobs}
                 title="Sync live from Google Sheets"
-                className="flex items-center gap-1.5 bg-stone-50 hover:bg-stone-100 text-stone-700 px-3 py-1.5 rounded-lg text-xs font-medium border border-stone-200 transition shadow-sm"
+                aria-label="Refresh"
+                className="header-btn"
               >
-                <span>🔄</span>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="w-3.5 h-3.5" aria-hidden="true"><path d="M20 11a8 8 0 1 0-2.3 5.7"/><path d="M20 4v7h-7"/></svg>
                 <span className="hidden sm:inline">Refresh</span>
               </button>
 
               <button
                 onClick={handleLock}
                 title="Lock Dashboard"
-                className="flex items-center gap-1.5 bg-stone-50 hover:bg-rose-50 text-stone-500 hover:text-rose-700 px-2.5 py-1.5 rounded-lg text-xs font-medium border border-stone-200 transition"
+                aria-label="Lock"
+                className="header-btn"
               >
-                <span>🔒</span>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="w-3.5 h-3.5" aria-hidden="true"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>
                 <span className="hidden sm:inline">Lock</span>
               </button>
 
@@ -2221,23 +2761,31 @@
                   onClick={() => setActiveTab('list')}
                   className={`px-3 py-1 rounded-md transition ${activeTab === 'list' ? 'bg-white shadow text-stone-900 font-semibold' : 'text-stone-500'}`}
                 >
-                  List ({processedJobs.length})
+                  {selectedJob ? 'Job' : `List (${processedJobs.length})`}
                 </button>
+                {selectedJob && (
+                  <button
+                    onClick={() => setActiveTab('matches')}
+                    className={`px-3 py-1 rounded-md transition ${activeTab === 'matches' ? 'bg-white shadow text-stone-900 font-semibold' : 'text-stone-500'}`}
+                  >
+                    Matches ({matchedCandidates.length})
+                  </button>
+                )}
               </div>
             </div>
           </header>
 
           {/* SEARCH & FILTERS BAR */}
-          <div className="border-b border-stone-200 bg-stone-50/70 p-3 shrink-0 z-20">
-            <div className="max-w-7xl mx-auto flex flex-wrap items-center gap-2 sm:gap-3">
+          <div className="border-b border-stone-200 bg-white px-3 lg:px-6 py-3 shrink-0 z-20">
+            <div className="flex flex-wrap lg:flex-nowrap items-center gap-2">
 
               {/* Proximity Location Input + Uber-Style Autocomplete */}
-              <div ref={searchBoxRef} className="flex-1 min-w-[280px] relative">
+              <div ref={searchBoxRef} className="flex-1 min-w-[260px] relative">
                 <form onSubmit={handleLocationSearch} className="w-full flex items-center relative">
-                  <div className="absolute left-3 text-stone-400 text-sm pointer-events-none">📍</div>
+                  <div className="absolute left-3.5 text-stone-500 pointer-events-none flex"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4" aria-hidden="true"><path d="M12 21s-7-6.2-7-11.5a7 7 0 0 1 14 0C19 14.8 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.5"/></svg></div>
                   <input
                     type="text"
-                    placeholder="Candidate city / postal / street address..."
+                    placeholder="Search a city, postal code, or address"
                     value={searchQuery}
                     onFocus={() => {
                       if (searchQuery.trim().length >= 2) setShowSuggestions(true);
@@ -2263,10 +2811,10 @@
                         }
                       }
                     }}
-                    className="w-full pl-9 pr-9 py-2 bg-white border border-stone-200 focus:border-stone-800 rounded-xl text-xs sm:text-sm text-stone-900 placeholder-stone-400 focus:outline-none focus:ring-1 focus:ring-stone-800 shadow-sm transition"
+                    className="search-field w-full"
                   />
                   {(searchQuery || searchCoords) && (
-                    <div className="absolute right-2 flex items-center gap-1">
+                    <div className="absolute right-2.5 flex items-center gap-1">
                       {isSearchingLocation ? (
                         <div className="w-3.5 h-3.5 border-2 border-stone-500 border-t-transparent rounded-full animate-spin"></div>
                       ) : (
@@ -2279,8 +2827,8 @@
                             setSearchError(null);
                             setShowSuggestions(false);
                           }}
-                          className="text-xs text-stone-400 hover:text-stone-800 p-1 rounded-full transition"
-                          title="Clear search"
+                          className="text-xs text-stone-500 hover:text-stone-900 p-1 rounded-md transition-colors"
+                          title="Clear search" aria-label="Clear search"
                         >
                           ✕
                         </button>
@@ -2291,12 +2839,9 @@
 
                 {/* UBER-STYLE AUTOCOMPLETE DROPDOWN */}
                 {showSuggestions && suggestions.length > 0 && (
-                  <div className="absolute top-full left-0 right-0 mt-1.5 bg-white/95 backdrop-blur-md border border-stone-200 rounded-2xl shadow-2xl overflow-hidden z-50 animate-in fade-in slide-in-from-top-1 duration-150">
+                  <div className="absolute top-full left-0 right-0 mt-1.5 bg-white border border-[#e7e4df] rounded-[10px] shadow-lg overflow-hidden z-50">
                     <div className="p-1.5">
-                      <div className="px-2.5 py-1 text-[10px] font-mono uppercase tracking-wider text-stone-400 font-semibold flex items-center justify-between border-b border-stone-100">
-                        <span>Suggested Locations</span>
-                        <span className="text-[9px] text-stone-400 lowercase">select to rank</span>
-                      </div>
+                      <div className="px-2.5 py-1.5 text-[11px] text-stone-600 border-b border-stone-100">Suggested locations</div>
                       <div className="max-h-60 overflow-y-auto mt-1 space-y-0.5">
                         {suggestions.map((item, idx) => {
                           const isActive = idx === activeSuggestionIndex;
@@ -2305,11 +2850,11 @@
                               key={item.id}
                               onMouseEnter={() => setActiveSuggestionIndex(idx)}
                               onClick={() => handleSelectSuggestion(item)}
-                              className={`px-3 py-2 rounded-xl cursor-pointer transition flex items-start gap-2.5 ${
+                              className={`px-3 py-2 rounded-md cursor-pointer transition-colors flex items-start gap-2.5 ${
                                 isActive ? 'bg-stone-100 text-stone-900' : 'hover:bg-stone-50 text-stone-800'
                               }`}
                             >
-                              <span className="text-sm mt-0.5 text-stone-400">📍</span>
+                              <span className="mt-0.5 text-stone-500 flex"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4" aria-hidden="true"><path d="M12 21s-7-6.2-7-11.5a7 7 0 0 1 14 0C19 14.8 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.5"/></svg></span>
                               <div className="flex-1 min-w-0">
                                 <p className="text-xs font-semibold text-stone-900 truncate">
                                   {item.mainText}
@@ -2320,9 +2865,6 @@
                                   </p>
                                 )}
                               </div>
-                              <span className="text-[10px] text-stone-400 font-mono self-center shrink-0">
-                                ↵ Select
-                              </span>
                             </div>
                           );
                         })}
@@ -2333,16 +2875,16 @@
               </div>
 
               {/* Keyword Filter */}
-              <div className="w-40 shrink-0 relative">
+              <div className="flex-1 min-w-[140px] lg:flex-none lg:w-44 relative">
                 <input
                   type="text"
-                  placeholder="Filter role/skill..."
+                  placeholder="Filter role or skill"
                   value={keywordFilter}
                   onChange={(e) => setKeywordFilter(e.target.value)}
-                  className="w-full px-3 py-2 bg-white border border-stone-200 focus:border-stone-800 rounded-xl text-xs text-stone-900 placeholder-stone-400 focus:outline-none shadow-sm"
+                  className="control-field w-full pr-8"
                 />
                 {keywordFilter && (
-                  <button onClick={() => setKeywordFilter('')} className="absolute right-2.5 top-2 text-xs text-stone-400">✕</button>
+                  <button onClick={() => setKeywordFilter('')} aria-label="Clear keyword" className="absolute right-2.5 top-1/2 -translate-y-1/2 text-xs text-stone-500 hover:text-stone-900">✕</button>
                 )}
               </div>
 
@@ -2350,7 +2892,8 @@
               <select
                 value={selectedOwner}
                 onChange={(e) => setSelectedOwner(e.target.value)}
-                className="bg-white border border-stone-200 text-stone-700 text-xs rounded-xl px-3 py-2 focus:outline-none focus:border-stone-800 shadow-sm cursor-pointer"
+                aria-label="Owner"
+                className="control-field shrink-0 cursor-pointer"
               >
                 <option value="ALL">All Owners</option>
                 {uniqueOwners.map(o => (
@@ -2360,110 +2903,58 @@
 
               {/* Max Radius Filter */}
               {searchCoords && (
-                <div className="flex items-center gap-1.5 bg-white border border-stone-200 px-3 py-1.5 rounded-xl text-xs shadow-sm">
-                  <span className="text-stone-500">Radius:</span>
-                  <select
+                <select
+                    aria-label="Job radius from search"
                     value={maxRadius}
                     onChange={(e) => setMaxRadius(e.target.value)}
-                    className="bg-transparent text-stone-900 font-semibold focus:outline-none cursor-pointer"
+                    className="control-field shrink-0 cursor-pointer"
                   >
-                    <option value="ALL">Any</option>
+                    <option value="ALL">Any distance</option>
                     <option value="25">Within 25 {unit}</option>
                     <option value="50">Within 50 {unit}</option>
                     <option value="100">Within 100 {unit}</option>
                     <option value="250">Within 250 {unit}</option>
                   </select>
-                </div>
               )}
 
               {/* Unit Toggle */}
-              <div className="flex bg-stone-200/80 border border-stone-300 rounded-xl p-0.5 text-xs">
+              <div className="segmented shrink-0" role="group" aria-label="Distance unit">
                 <button
                   onClick={() => setUnit('km')}
-                  className={`px-2.5 py-1 rounded-lg transition ${unit === 'km' ? 'bg-white shadow text-stone-900 font-semibold' : 'text-stone-500'}`}
+                  aria-pressed={unit === 'km'}
+                  className={unit === 'km' ? 'is-on' : ''}
                 >
                   km
                 </button>
                 <button
                   onClick={() => setUnit('mi')}
-                  className={`px-2.5 py-1 rounded-lg transition ${unit === 'mi' ? 'bg-white shadow text-stone-900 font-semibold' : 'text-stone-500'}`}
+                  aria-pressed={unit === 'mi'}
+                  className={unit === 'mi' ? 'is-on' : ''}
                 >
                   mi
                 </button>
               </div>
 
-              {/* Region Filter Checkboxes (Plain iOS Style from Uiverse.io) */}
-              <div className="checkbox-container">
-                <span className="text-[10px] font-mono uppercase tracking-wider text-stone-400 font-semibold mr-0.5">Region:</span>
-
-                <label className="ios-checkbox">
-                  <input
-                    type="checkbox"
-                    checked={regionFilter === 'ALL'}
-                    onChange={() => handleRegionChange('ALL')}
-                  />
-                  <div className="checkbox-wrapper">
-                    <div className="checkbox-bg"></div>
-                    <svg className="checkbox-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-                      <polyline className="check-path" points="20 6 9 17 4 12"></polyline>
-                    </svg>
-                  </div>
-                  <span>Show All</span>
-                </label>
-
-                <label className="ios-checkbox">
-                  <input
-                    type="checkbox"
-                    checked={regionFilter === 'ONTARIO'}
-                    onChange={() => handleRegionChange('ONTARIO')}
-                  />
-                  <div className="checkbox-wrapper">
-                    <div className="checkbox-bg"></div>
-                    <svg className="checkbox-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-                      <polyline className="check-path" points="20 6 9 17 4 12"></polyline>
-                    </svg>
-                  </div>
-                  <span>Ontario Only</span>
-                </label>
-
-                <label className="ios-checkbox">
-                  <input
-                    type="checkbox"
-                    checked={regionFilter === 'CANADA'}
-                    onChange={() => handleRegionChange('CANADA')}
-                  />
-                  <div className="checkbox-wrapper">
-                    <div className="checkbox-bg"></div>
-                    <svg className="checkbox-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-                      <polyline className="check-path" points="20 6 9 17 4 12"></polyline>
-                    </svg>
-                  </div>
-                  <span>Canada</span>
-                </label>
-
-                <label className="ios-checkbox">
-                  <input
-                    type="checkbox"
-                    checked={regionFilter === 'GLOBAL'}
-                    onChange={() => handleRegionChange('GLOBAL')}
-                  />
-                  <div className="checkbox-wrapper">
-                    <div className="checkbox-bg"></div>
-                    <svg className="checkbox-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-                      <polyline className="check-path" points="20 6 9 17 4 12"></polyline>
-                    </svg>
-                  </div>
-                  <span>Global</span>
-                </label>
-              </div>
+              {/* Region Filter */}
+              <select
+                aria-label="Region"
+                value={regionFilter}
+                onChange={(e) => handleRegionChange(e.target.value)}
+                className="control-field shrink-0 cursor-pointer"
+              >
+                <option value="ALL">All regions</option>
+                <option value="ONTARIO">Ontario only</option>
+                <option value="CANADA">Canada</option>
+                <option value="GLOBAL">Outside Canada</option>
+              </select>
 
             </div>
 
             {/* Candidate Search Active Banner */}
             {searchCoords && (
-              <div className="max-w-7xl mx-auto mt-2 flex items-center justify-between bg-stone-200/60 border border-stone-300/80 px-3 py-1.5 rounded-xl text-xs text-stone-700">
+              <div className="mt-2 flex items-center justify-between px-1 text-xs text-stone-700">
                 <div className="flex items-center gap-2">
-                  <span>📍 Ranked by distance from: <b className="text-stone-900">{searchAddressName}</b></span>
+                  <span>Jobs ranked by distance from <b className="text-stone-900">{searchAddressName}</b></span>
                 </div>
                 <button
                   onClick={() => {
@@ -2481,14 +2972,14 @@
 
             {/* Candidate Search Error Notice (Non-blocking inline) */}
             {searchError && (
-              <div className="max-w-7xl mx-auto mt-2 flex items-center justify-between bg-rose-50 border border-rose-200/80 px-3 py-1.5 rounded-xl text-xs text-rose-800 animate-in fade-in duration-150">
+              <div className="mt-2 flex items-center justify-between bg-white border border-stone-900 px-3 py-1.5 rounded-lg text-xs text-stone-900">
                 <div className="flex items-center gap-2">
                   <span>⚠️</span>
                   <span>{searchError}</span>
                 </div>
                 <button
                   onClick={() => setSearchError(null)}
-                  className="text-rose-500 hover:text-rose-900 text-xs font-bold px-1"
+                  className="text-stone-600 hover:text-stone-900 text-xs font-bold px-1"
                 >
                   ✕
                 </button>
@@ -2509,114 +3000,81 @@
             >
 
               {/* List Header */}
-              <div className="p-3 bg-white border-b border-stone-200 flex items-center justify-between text-xs text-stone-500">
-                <span>Showing <b>{processedJobs.length}</b> Active Roles</span>
-                <div className="flex items-center gap-2">
-                  {searchCoords && <span className="text-stone-900 font-medium hidden sm:inline">Nearest first ⬇️</span>}
-                  <button
-                    onClick={() => {
-                      setIsSidebarCollapsed(true);
-                      setTimeout(() => mapInstanceRef.current && mapInstanceRef.current.invalidateSize(), 100);
-                    }}
-                    title="Collapse sidebar to maximize map space"
-                    className="text-stone-400 hover:text-stone-800 p-1 rounded-lg hover:bg-stone-100 transition hidden lg:flex items-center gap-1 text-[11px]"
-                  >
-                    <span>◨</span>
-                    <span>Collapse</span>
+              <div className="px-3.5 h-11 bg-white border-b border-stone-200 flex items-center justify-between text-xs text-stone-700 shrink-0">
+                {selectedJob ? (
+                  <button onClick={() => setSelectedJob(null)} className="font-semibold text-stone-900 hover:underline flex items-center gap-1.5">
+                    <span aria-hidden="true">&larr;</span> Back to all roles
                   </button>
-                </div>
+                ) : (
+                  <span>Showing <b className="text-stone-900">{processedJobs.length}</b> Active Roles{searchCoords ? ', nearest first' : ''}</span>
+                )}
+                <button
+                  onClick={() => {
+                    setIsSidebarCollapsed(true);
+                    setTimeout(() => mapInstanceRef.current && mapInstanceRef.current.invalidateSize(), 100);
+                  }}
+                  title="Collapse sidebar to maximize map space"
+                  className="text-stone-500 hover:text-stone-900 px-1.5 py-1 rounded-md hover:bg-stone-100 transition-colors hidden lg:flex items-center text-[11px]"
+                >
+                  Collapse
+                </button>
               </div>
 
-              {/* Scrollable Container */}
-              <div className="flex-1 overflow-y-auto p-3.5 space-y-3 overscroll-contain scroll-smooth custom-scrollbar">
-                {loading ? (
-                  <div className="py-20 text-center text-stone-400 space-y-3">
+              {/* Scrollable Container (keyed so picking a job starts at the top) */}
+              <div key={selectedJob ? `job-${selectedJob.id}` : 'job-list'} className="flex-1 overflow-y-auto p-3.5 space-y-3 overscroll-contain custom-scrollbar">
+                {selectedJob ? (
+                  <>
+                    {renderJobCard(selectedJob)}
+
+                    {/* Key Specs */}
+                    <div className="grid grid-cols-2 gap-3 bg-white p-3.5 rounded-xl border border-stone-200 text-xs">
+                      <div>
+                        <span className="text-stone-500 text-[10px] block">Location</span>
+                        <span className="font-semibold text-stone-900">{selectedJob.displayLocation}</span>
+                      </div>
+                      <div>
+                        <span className="text-stone-500 text-[10px] block">Compensation</span>
+                        <span className="font-semibold text-stone-900">{selectedJob['Compensation'] || 'Not listed'}</span>
+                      </div>
+                      <div>
+                        <span className="text-stone-500 text-[10px] block">Job ID</span>
+                        <span className="text-stone-900">{selectedJob['Job ID'] || 'N/A'}</span>
+                      </div>
+                      <div>
+                        <span className="text-stone-500 text-[10px] block">Owner(s)</span>
+                        <span className="font-medium text-stone-900">{selectedJob['Owners'] || 'N/A'}</span>
+                      </div>
+                      {selectedJob.isMultiLocation && selectedJob.allLocations && (
+                        <div className="col-span-2 pt-2 border-t border-stone-100">
+                          <span className="text-stone-500 text-[10px] block">All Opening Locations ({selectedJob.totalLocations})</span>
+                          <span className="text-stone-900 text-[11px]">{selectedJob.allLocations.join(', ')}</span>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Job Description */}
+                    <div className="bg-white p-3.5 rounded-xl border border-stone-200">
+                      <h4 className="font-semibold text-stone-900 text-xs mb-1.5 flex items-center justify-between">
+                        <span>Role Details</span>
+                        <span className="text-stone-600"><CopyButton onCopy={() => copyJobPitch(selectedJob)} copied={copiedId === selectedJob.id} label="Copy job details" /></span>
+                      </h4>
+                      <div className="text-stone-800 whitespace-pre-wrap leading-relaxed text-[11.5px]">
+                        {selectedJob['Job Description'] || 'No description provided.'}
+                      </div>
+                    </div>
+                  </>
+                ) : loading ? (
+                  <div className="py-20 text-center text-stone-600 space-y-3">
                     <div className="w-7 h-7 border-2 border-stone-800 border-t-transparent rounded-full animate-spin mx-auto"></div>
-                    <p className="text-xs">Fetching active jobs & candidates from Google Sheets...</p>
+                    <p className="text-xs">Fetching active jobs and candidates from Google Sheets...</p>
                   </div>
                 ) : processedJobs.length === 0 ? (
-                  <div className="py-20 text-center text-stone-400 space-y-2">
-                    <p className="text-2xl">🔍</p>
-                    <p className="text-sm font-semibold text-stone-800">No active jobs match filters</p>
-                    <p className="text-xs text-stone-500">Try adjusting your search radius or keyword.</p>
+                  <div className="py-20 text-center space-y-2">
+                    <p className="text-sm font-semibold text-stone-900">No active jobs match filters</p>
+                    <p className="text-xs text-stone-600">Try adjusting your search radius or keyword.</p>
                   </div>
                 ) : (
-                  processedJobs.map((job, index) => {
-                    const isSelected = selectedJob && selectedJob.id === job.id;
-                    return (
-                      <div
-                        id={`job-card-${job.id}`}
-                        key={job.id}
-                        onClick={() => handleSelectJob(job)}
-                        className={`p-4 rounded-2xl border transition-all cursor-pointer relative ${
-                          isSelected
-                            ? 'bg-white border-stone-900 shadow-md ring-1 ring-stone-900'
-                            : 'bg-white hover:border-stone-400 border-stone-200 shadow-sm'
-                        }`}
-                      >
-                        {/* Top row: Title + Salary / Rate Pill */}
-                        <div className="flex items-start justify-between gap-2">
-                          <div className="flex-1 pr-2">
-                            <h3 className="font-bold text-stone-900 text-sm hover:text-stone-700 transition leading-snug">
-                              {job['Job Title']}
-                            </h3>
-                            <p className="text-xs text-stone-600 font-medium mt-0.5">{job['Company']}</p>
-                          </div>
-
-                          {/* Salary / Rate Badge on Top Right */}
-                          {job['Compensation'] ? (
-                            <span className="bg-emerald-50 border border-emerald-200/80 text-emerald-800 text-[11px] px-2.5 py-1 rounded-lg font-semibold whitespace-nowrap shrink-0 shadow-sm">
-                              💰 {job['Compensation']}
-                            </span>
-                          ) : (
-                            <span className="bg-stone-100 text-stone-500 text-[10px] px-2 py-0.5 rounded-md font-medium border border-stone-200/60 shrink-0">
-                              Competitive
-                            </span>
-                          )}
-                        </div>
-
-                        {/* Location & Proximity Distance */}
-                        <div className="mt-2.5 flex flex-wrap items-center gap-2 text-xs text-stone-600">
-                          <div className="flex items-center gap-1">
-                            <span>📌</span>
-                            <span className="font-medium">{job.displayLocation}</span>
-                          </div>
-                          {job.isMultiLocation && (
-                            <span className="bg-stone-100 border border-stone-200/80 text-stone-600 text-[10px] px-1.5 py-0.5 rounded font-medium">
-                              Site {job.locationIndex} of {job.totalLocations}
-                            </span>
-                          )}
-                          {job.distance !== null && (
-                            <span className="bg-stone-100 border border-stone-200 text-stone-800 text-[11px] px-2 py-0.5 rounded-full font-semibold">
-                              📍 {job.distance} {unit} away
-                            </span>
-                          )}
-                        </div>
-
-                        {/* Recruiter & Quick Action */}
-                        <div className="mt-3 pt-2.5 border-t border-stone-100 flex items-center justify-between text-xs">
-                          <span className="text-stone-400 text-[11px]">
-                            Owner: <span className="text-stone-700 font-medium">{job['Owners'] || 'N/A'}</span>
-                          </span>
-
-                          <div className="flex items-center gap-2">
-                            <CopyButton onCopy={() => copyJobPitch(job)} copied={copiedId === job.id} label="Copy job pitch" />
-
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleSelectJob(job);
-                              }}
-                              className="text-[11px] text-stone-900 font-semibold hover:underline"
-                            >
-                              View &rarr;
-                            </button>
-                          </div>
-                        </div>
-
-                      </div>
-                    );
-                  })
+                  processedJobs.map(job => renderJobCard(job))
                 )}
               </div>
             </div>
@@ -2632,7 +3090,7 @@
             )}
 
             {/* INTERACTIVE MAP */}
-            <div className={`flex-1 min-w-0 relative h-full bg-stone-100 ${activeTab === 'list' ? 'hidden lg:block' : 'block'}`}>
+            <div className={`flex-1 min-w-0 relative h-full bg-stone-100 ${activeTab !== 'map' ? 'hidden lg:block' : 'block'}`}>
               <div ref={mapContainerRef} id="map-viewport" className="w-full h-full z-10" />
 
               {/* Expand Sidebar Button (when collapsed) */}
@@ -2642,43 +3100,36 @@
                     setIsSidebarCollapsed(false);
                     setTimeout(() => mapInstanceRef.current && mapInstanceRef.current.invalidateSize(), 100);
                   }}
-                  className="absolute top-4 left-4 z-20 bg-white hover:bg-stone-50 text-stone-900 text-xs px-3 py-2 rounded-xl border border-stone-200 shadow-md font-semibold transition flex items-center gap-1.5 animate-in fade-in"
+                  className="map-ctl absolute top-3 left-3 z-20"
                   title="Expand active jobs sidebar"
                 >
-                  <span>◧</span>
-                  <span>Show Jobs ({processedJobs.length})</span>
+                  <span>{selectedJob ? 'Show job' : `Show jobs (${processedJobs.length})`}</span>
                 </button>
               )}
 
               {/* Map Floating Controls */}
-              <div className="absolute top-4 right-4 z-20 flex flex-wrap items-center gap-1.5 sm:gap-2">
+              <div className="absolute top-3 right-3 left-3 sm:left-auto z-20 flex flex-wrap justify-end items-center gap-1.5">
                 {/* Layer Toggles */}
-                <div className="flex bg-white/95 backdrop-blur p-1 rounded-xl border border-stone-200 shadow-md gap-1 text-xs font-semibold">
+                <div className="map-ctl-group">
                   <button
                     onClick={() => setShowJobsLayer(prev => !prev)}
-                    className={`px-2.5 py-1 rounded-lg transition flex items-center gap-1.5 ${
-                      showJobsLayer
-                        ? 'bg-stone-900 text-white shadow-sm'
-                        : 'bg-transparent text-stone-400 hover:text-stone-700'
-                    }`}
+                    aria-pressed={showJobsLayer}
+                    className={showJobsLayer ? 'is-on' : ''}
                     title="Toggle Job Pins on Map"
                   >
                     <span>💰</span>
                     <span>Jobs ({processedJobs.length})</span>
                   </button>
 
-                  <button
-                    onClick={() => setShowCandidatesLayer(prev => !prev)}
-                    className={`px-2.5 py-1 rounded-lg transition flex items-center gap-1.5 ${
-                      showCandidatesLayer
-                        ? 'bg-stone-900 text-white shadow-sm'
-                        : 'bg-transparent text-stone-400 hover:text-stone-700'
-                    }`}
+                  {candidatesInPlay && <button
+                    onClick={() => { candidatesLayerTouchedRef.current = true; setShowCandidatesLayer(prev => !prev); }}
+                    aria-pressed={showCandidatesLayer}
+                    className={showCandidatesLayer ? 'is-on' : ''}
                     title="Toggle Candidate Pins on Map"
                   >
                     <svg viewBox="0 0 24 24" fill="currentColor" className="w-3.5 h-3.5" aria-hidden="true"><circle cx="12" cy="7" r="4"/><path d="M4 21v-3a8 8 0 0 1 16 0v3z"/></svg>
-                    <span>Candidates ({spreadCandidates.filter(c => c.spreadCoords).length})</span>
-                  </button>
+                    <span>Candidates ({mapCandidatePool.filter(c => c.spreadCoords).length})</span>
+                  </button>}
                 </div>
 
                 {/* Toronto, ON Focus */}
@@ -2688,10 +3139,10 @@
                       mapInstanceRef.current.setView([43.6625, -79.3900], 13, { animate: true });
                     }
                   }}
-                  className="bg-white hover:bg-stone-50 text-stone-900 text-xs px-2.5 py-2 rounded-xl border border-stone-200 shadow-md font-medium transition flex items-center gap-1.5"
+                  className="map-ctl"
                   title="Center map on Downtown Toronto"
                 >
-                  <span>🍁</span> Toronto, ON
+                  Toronto, ON
                 </button>
 
 
@@ -2703,312 +3154,37 @@
                       if (showJobsLayer) {
                         jobs.filter(j => j.coords).forEach(j => allPoints.push(j.coords));
                       }
-                      if (showCandidatesLayer) {
-                        spreadCandidates.filter(c => c.spreadCoords).forEach(c => allPoints.push(c.spreadCoords));
+                      if (candidatesOnMap) {
+                        mapCandidatePool.filter(c => c.spreadCoords).forEach(c => allPoints.push(c.spreadCoords));
                       }
                       if (allPoints.length > 0) {
                         mapInstanceRef.current.fitBounds(allPoints, { paddingTopLeft: [70, 120], paddingBottomRight: [70, 70] });
                       }
                     }
                   }}
-                  className="bg-white hover:bg-stone-50 text-stone-900 text-xs px-2.5 py-2 rounded-xl border border-stone-200 shadow-md font-medium transition flex items-center gap-1.5"
+                  className="map-ctl"
                   title="Fit all markers in view"
                 >
-                  <span>🌐</span> All Pins
+                  Fit all pins
                 </button>
               </div>
 
-              {/* SLIDE-OUT DETAIL DRAWER (ROLES & CANDIDATE MATCHING) */}
-              {selectedJob && (
-                <div className="absolute top-4 left-4 right-4 sm:right-auto sm:w-[460px] max-h-[88%] bg-white/95 border border-stone-200 rounded-3xl shadow-2xl backdrop-blur z-30 flex flex-col overflow-hidden animate-in fade-in duration-150">
-
-                  {/* Drawer Header */}
-                  <div className="p-4 border-b border-stone-100 flex items-start justify-between bg-stone-50/50 shrink-0">
-                    <div className="flex-1 pr-2">
-                      <h2 className="text-base font-bold text-stone-900 leading-snug">{selectedJob['Job Title']}</h2>
-                      <p className="text-xs text-stone-600 font-medium">{selectedJob['Company']}</p>
-                    </div>
-                    <button
-                      onClick={() => setSelectedJob(null)}
-                      className="text-stone-400 hover:text-stone-900 p-1.5 rounded-lg hover:bg-stone-100 transition"
-                    >
-                      ✕
-                    </button>
-                  </div>
-
-                  {/* Drawer Tab Switcher */}
-                  <div className="flex border-b border-stone-200 bg-white px-4 pt-2 gap-3 shrink-0 text-xs">
-                    <button
-                      onClick={() => setDrawerTab('role')}
-                      className={`pb-2.5 font-semibold transition border-b-2 flex items-center gap-1.5 ${
-                        drawerTab === 'role'
-                          ? 'border-stone-900 text-stone-900'
-                          : 'border-transparent text-stone-400 hover:text-stone-700'
-                      }`}
-                    >
-                      <span>💼 Role Details</span>
-                    </button>
-                    <button
-                      onClick={() => setDrawerTab('candidates')}
-                      className={`pb-2.5 font-semibold transition border-b-2 flex items-center gap-1.5 ${
-                        drawerTab === 'candidates'
-                          ? 'border-stone-900 text-stone-900'
-                          : 'border-transparent text-stone-400 hover:text-stone-700'
-                      }`}
-                    >
-                      <span>Candidates</span>
-                    </button>
-                  </div>
-
-                  {/* Drawer Content */}
-                  <div className="p-4 overflow-y-auto space-y-3.5 text-xs text-stone-700 flex-1 custom-scrollbar">
-
-                    {drawerTab === 'role' ? (
-                      <>
-                        {/* Key Specs */}
-                        <div className="grid grid-cols-2 gap-2 bg-stone-50 p-3 rounded-2xl border border-stone-200/70">
-                          <div>
-                            <span className="text-stone-400 text-[10px] block">Location</span>
-                            <span className="font-semibold text-stone-900">{selectedJob.displayLocation}</span>
-                            {selectedJob.isMultiLocation && (
-                              <span className="block text-[10px] text-stone-500 font-normal">
-                                Site {selectedJob.locationIndex} of {selectedJob.totalLocations}
-                              </span>
-                            )}
-                          </div>
-                          <div>
-                            <span className="text-stone-400 text-[10px] block">Compensation</span>
-                            <span className="font-semibold text-emerald-800">{selectedJob['Compensation'] || 'Not listed'}</span>
-                          </div>
-                          <div>
-                            <span className="text-stone-400 text-[10px] block">Job ID</span>
-                            <span className="font-mono text-stone-700">{selectedJob['Job ID']}</span>
-                          </div>
-                          <div>
-                            <span className="text-stone-400 text-[10px] block">Owner(s)</span>
-                            <span className="font-medium text-stone-900">{selectedJob['Owners'] || 'N/A'}</span>
-                          </div>
-                          {selectedJob.isMultiLocation && selectedJob.allLocations && (
-                            <div className="col-span-2 pt-1 border-t border-stone-200/50">
-                              <span className="text-stone-400 text-[10px] block">All Opening Locations ({selectedJob.totalLocations})</span>
-                              <span className="text-stone-800 font-medium text-[11px]">{selectedJob.allLocations.join(' • ')}</span>
-                            </div>
-                          )}
-                        </div>
-
-                        {/* Role-first candidate suggestions */}
-                        <div className="bg-stone-100/90 p-3 rounded-2xl border border-stone-200/90 space-y-2">
-                          <div className="flex items-center justify-between text-xs">
-                            <span className="font-semibold text-stone-900">🎯 Candidate suggestions</span>
-                            <span className="bg-stone-900 text-white text-[10px] px-2 py-0.5 rounded-full font-bold">{matchedCandidates.length} found</span>
-                          </div>
-                          <p className="text-[11px] text-stone-600">Role matches first, then similar roles and related industries. Locations are approximate.</p>
-                          {trackerLinkWarning && <p className="text-[11px] text-amber-800">{trackerLinkWarning}</p>}
-                          <button onClick={() => { setCandidateMatchScope('relevant'); setDrawerTab('candidates'); }}
-                            className="w-full bg-stone-900 hover:bg-stone-800 text-white py-2 px-3 rounded-xl font-medium text-xs flex items-center justify-between transition shadow-sm">
-                            <span>View candidate suggestions</span><span>&rarr;</span>
-                          </button>
-                        </div>
-
-                        {/* Job Description */}
-                        <div>
-                          <h4 className="font-semibold text-stone-900 mb-1.5 flex items-center justify-between">
-                            <span>Role Details</span>
-                            <CopyButton onCopy={() => copyJobPitch(selectedJob)} copied={copiedId === selectedJob.id} label="Copy job details" />
-                          </h4>
-                          <div className="bg-stone-50 p-3 rounded-2xl border border-stone-200/60 text-stone-700 whitespace-pre-wrap leading-relaxed max-h-56 overflow-y-auto text-[11px]">
-                            {selectedJob['Job Description'] || 'No description provided.'}
-                          </div>
-                        </div>
-                      </>
-                    ) : (
-                      /* CANDIDATE SUGGESTIONS TAB */
-                      <div className="space-y-3">
-                        {/* Candidate Filter Bar */}
-                        <div className="bg-stone-50 p-3 rounded-2xl border border-stone-200/80 space-y-2">
-                          <div className="flex flex-wrap items-center justify-between gap-2">
-                            <label className="flex items-center gap-1.5 text-[11px] text-stone-700 font-medium">
-                              <span>Show:</span>
-                              <select aria-label="Candidate match type" value={candidateMatchScope}
-                                onChange={(e) => setCandidateMatchScope(e.target.value)}
-                                className="bg-white border border-stone-200 text-stone-900 font-semibold text-xs rounded-lg px-2 py-1 focus:outline-none cursor-pointer shadow-sm">
-                                <option value="relevant">Role + related matches</option>
-                                <option value="role">Role matches only</option>
-                                <option value="similar">Similar roles / background</option>
-                                <option value="industry">Related industry only</option>
-                              </select>
-                            </label>
-                          </div>
-                          <p className="text-[11px] text-stone-600">Sorted by role relevance. Candidate locations are approximate; no distance filter is applied.</p>
-
-                          {/* Quick Candidate Filter Input */}
-                          <div className="relative">
-                            <input
-                              type="text"
-                              placeholder="Filter candidates by name, skill, or notes..."
-                              value={candidateSearchText}
-                              onChange={(e) => setCandidateSearchText(e.target.value)}
-                              className="w-full pl-7 pr-3 py-1.5 bg-white border border-stone-200 rounded-lg text-xs placeholder-stone-400 focus:outline-none focus:border-stone-800"
-                            />
-                            <span className="absolute left-2.5 top-2 text-[10px] text-stone-400">🔍</span>
-                            {candidateSearchText && (
-                              <button
-                                onClick={() => setCandidateSearchText('')}
-                                className="absolute right-2 top-1.5 text-xs text-stone-400 hover:text-stone-700"
-                              >
-                                ✕
-                              </button>
-                            )}
-                          </div>
-                        </div>
-
-                        {trackerLinkWarning && <p className="text-[11px] text-amber-800">{trackerLinkWarning}</p>}
-                        {/* Candidate Cards List */}
-                        {matchedCandidates.length === 0 ? (
-                          <div className="py-12 text-center text-stone-400 space-y-2">
-                            <p className="text-2xl">🎯</p>
-                            <p className="text-sm font-semibold text-stone-800">No candidates match these criteria</p>
-                            <p className="text-xs text-stone-500">
-                              Try clearing the search or choosing "Role + related matches". Candidates with no relevant role or industry evidence are excluded.
-                            </p>
-                          </div>
-                        ) : (
-                          matchedCandidates.map((cand) => {
-                            const isPinned = pinnedCandidateId === cand.id;
-                            return (
-                              <div
-                                key={cand.id}
-                                data-candidate-id={cand.id}
-                                className={`p-3.5 rounded-2xl border transition-all ${
-                                  isPinned
-                                    ? 'bg-stone-900 text-white border-stone-900 shadow-md ring-1 ring-stone-900'
-                                    : 'bg-white hover:border-stone-400 border-stone-200/80 shadow-sm'
-                                }`}
-                              >
-                                {/* Top: Name & Badges */}
-                                <div className="flex items-start justify-between gap-2">
-                                  <div className="flex-1 pr-1">
-                                    <h5 className={`font-bold text-xs ${isPinned ? 'text-white' : 'text-stone-900'}`}>
-                                      {cand.name}
-                                    </h5>
-                                    <p className={`text-[11px] font-semibold mt-0.5 ${isPinned ? 'text-stone-200' : 'text-stone-700'}`}>
-                                      {cand.title}
-                                    </p>
-                                  </div>
-
-                                  <div className="flex flex-col items-end gap-1 shrink-0">
-                                    <span title={cand.matchReason} className="text-[9px] bg-emerald-100 border border-emerald-300 text-emerald-800 px-1.5 py-0.2 rounded font-semibold">
-                                      {cand.matchLabel}
-                                    </span>
-                                  </div>
-                                </div>
-
-                                <p className={`mt-2 text-[10px] ${isPinned ? 'text-stone-300' : 'text-stone-500'}`}>{cand.matchReason}</p>
-                                {/* Render reported data, with no distance claims. */}
-                                <div className="mt-2 space-y-1 text-[11px]">
-                                  <div className={`flex items-center gap-1 ${isPinned ? 'text-stone-300' : 'text-stone-600'}`}>
-                                    <span>📌</span>
-                                    <span className="font-medium">Reported location: {cand.location || 'Not provided'}</span>
-                                  </div>
-
-                                  {cand.company && (
-                                    <p className={isPinned ? 'text-stone-300' : 'text-stone-600'}>
-                                      🏢 Company: <span className="font-medium">{cand.company}</span>
-                                    </p>
-                                  )}
-
-                                  {cand.compensationTarget && (
-                                    <div className="pt-0.5">
-                                      <span className={`inline-block px-2 py-0.5 rounded-md text-[10px] font-semibold ${
-                                        isPinned ? 'bg-emerald-800/80 text-emerald-200 border border-emerald-600' : 'bg-emerald-50 text-emerald-800 border border-emerald-200'
-                                      }`}>
-                                        💰 {cand.compensationTarget}
-                                      </span>
-                                    </div>
-                                  )}
-
-                                  {cand.industry && (
-                                    <p className={isPinned ? 'text-stone-300' : 'text-stone-600'}>
-                                      🏭 Industry: <span className="font-normal">{cand.industry}</span>
-                                    </p>
-                                  )}
-
-                                  {cand.notes && (
-                                    <div className={`p-2 rounded-xl text-[10px] mt-1.5 leading-relaxed ${
-                                      isPinned ? 'bg-white/10 text-stone-200' : 'bg-stone-50 border border-stone-200/60 text-stone-600'
-                                    }`}>
-                                      <b>Target/Notes:</b> {cand.notes}
-                                    </div>
-                                  )}
-
-                                  {cand.shift && (
-                                    <p className={`text-[10px] ${isPinned ? 'text-stone-300' : 'text-stone-500'}`}>
-                                      ⏱️ Shift: {cand.shift}
-                                    </p>
-                                  )}
-                                </div>
-
-                                <CandidateSubmissionLink candidate={cand} />
-                                {/* Actions Row */}
-                                <div className={`mt-2.5 pt-2 border-t flex items-center justify-between text-xs ${
-                                  isPinned ? 'border-white/15' : 'border-stone-100'
-                                }`}>
-                                  <button
-                                    onClick={() => handlePinCandidateOnMap(cand)}
-                                    disabled={!validCoords(cand.coords)}
-                                    title={validCoords(cand.coords) ? 'Show approximate reported location' : 'No reported location available'}
-                                    className={`px-2.5 py-1 rounded-lg font-medium text-[11px] transition flex items-center gap-1 ${
-                                      isPinned
-                                        ? 'bg-white text-stone-900 shadow-sm'
-                                        : 'bg-stone-100 hover:bg-stone-200 text-stone-800 border border-stone-200'
-                                    }`}
-                                  >
-                                    <span>📍</span>
-                                    <span>{isPinned ? 'Location shown' : 'Show reported location'}</span>
-                                  </button>
-
-                                  <div className="flex items-center gap-2">
-                                    <CopyButton onCopy={() => copyCandidatePitch(cand)} copied={copiedId === cand.id} label="Copy candidate summary"
-                                      className={isPinned ? 'text-stone-300' : 'text-stone-500'} />
-
-
-                                  </div>
-                                </div>
-
-                              </div>
-                            );
-                          })
-                        )}
-                      </div>
-                    )}
-
-                  </div>
-
-                  <div className="px-3 py-2 border-t border-stone-100 flex justify-end shrink-0 text-stone-500">
-                    <CopyButton onCopy={() => copyJobPitch(selectedJob)} copied={copiedId === selectedJob.id} label="Copy job pitch for candidate" />
-                  </div>
-
-                </div>
-              )}
-
               {/* SLIDE-OUT CANDIDATE CITY CLUSTER DRAWER */}
               {selectedCandidateGroup && (
-                <div className="absolute top-4 left-4 right-4 sm:right-auto sm:w-[460px] max-h-[88%] bg-white/95 border border-stone-200 rounded-3xl shadow-2xl backdrop-blur z-30 flex flex-col overflow-hidden animate-in fade-in duration-150">
+                <div className="absolute top-14 left-3 right-3 sm:right-auto sm:w-[420px] max-h-[85%] bg-white border border-stone-200 rounded-xl shadow-lg z-30 flex flex-col overflow-hidden">
 
                   {/* Drawer Header */}
-                  <div className="p-4 border-b border-stone-100 flex items-start justify-between bg-stone-50/50 shrink-0">
+                  <div className="p-4 border-b border-stone-100 flex items-start justify-between bg-white shrink-0">
                     <div className="flex-1 pr-2">
                       <div className="flex items-center gap-2">
-                        <span className="text-[10px] font-mono uppercase tracking-wider text-stone-400 font-bold">Candidate Pool</span>
-                        <span className="bg-stone-900 text-white text-[10px] px-2 py-0.5 rounded-full font-semibold">
-                          👤 {selectedCandidateGroup.candidates.length} records
-                        </span>
+                        <span className="text-[11px] text-stone-600">Candidates here</span>
+                        <span className="text-[11px] font-semibold text-stone-900">{selectedCandidateGroup.candidates.length}</span>
                       </div>
                       <h2 className="text-base font-bold text-stone-900 mt-0.5 leading-snug">
                         {selectedCandidateGroup.cityName}
                       </h2>
-                      <p className="text-xs text-stone-500">
-                        Reported location (approximate)
+                      <p className="text-xs text-stone-600">
+                        Reported location, approximate (city level)
                       </p>
                     </div>
                     <button
@@ -3028,10 +3204,9 @@
                         setSearchQuery(selectedCandidateGroup.cityName);
                         if (isSidebarCollapsed) setIsSidebarCollapsed(false);
                       }}
-                      className="w-full bg-stone-900 hover:bg-stone-800 text-white px-3 py-2.5 rounded-xl text-xs font-semibold flex items-center justify-center gap-2 transition shadow-sm"
+                      className="w-full bg-stone-900 hover:bg-stone-800 text-white px-3 py-2.5 rounded-lg text-xs font-semibold flex items-center justify-center gap-2 transition-colors"
                     >
-                      <span>📍</span>
-                      <span>Rank All Active Jobs Nearest to {selectedCandidateGroup.cityName}</span>
+                      <span>Rank active jobs nearest to {selectedCandidateGroup.cityName}</span>
                     </button>
                   </div>
 
@@ -3043,10 +3218,9 @@
                         placeholder="Filter candidates by name, title, skill..."
                         value={candidateCityFilterText}
                         onChange={(e) => setCandidateCityFilterText(e.target.value)}
-                        className="w-full pl-7 pr-7 py-1.5 bg-stone-50 border border-stone-200 rounded-lg text-xs placeholder-stone-400 focus:outline-none focus:border-stone-800"
+                        className="w-full control-field h-9 pr-7 text-xs"
                       />
-                      <span className="absolute left-2.5 top-2 text-[10px] text-stone-400">🔍</span>
-                      {candidateCityFilterText && (
+                                            {candidateCityFilterText && (
                         <button
                           onClick={() => setCandidateCityFilterText('')}
                           className="absolute right-2 top-1.5 text-xs text-stone-400 hover:text-stone-700"
@@ -3061,8 +3235,7 @@
                   <div className="p-4 overflow-y-auto space-y-3 text-xs text-stone-700 flex-1 custom-scrollbar">
                     {filteredCityCandidates.length === 0 ? (
                       <div className="py-12 text-center text-stone-400 space-y-2">
-                        <p className="text-2xl">🌿</p>
-                        <p className="text-sm font-semibold text-stone-800">No candidates match search</p>
+                                                <p className="text-sm font-semibold text-stone-800">No candidates match search</p>
                         <p className="text-xs text-stone-500">Try clearing the search filter above.</p>
                       </div>
                     ) : (
@@ -3071,10 +3244,10 @@
                         return (
                           <div
                             key={cand.id}
-                            className={`p-3.5 rounded-2xl border transition space-y-2 ${
+                            className={`p-3.5 rounded-xl border transition-colors space-y-2 ${
                               isSelectedFromMap
-                                ? 'border-stone-900 bg-stone-50 ring-2 ring-stone-900 shadow-md'
-                                : 'border-stone-200/80 bg-white hover:border-stone-400 shadow-sm'
+                                ? 'border-stone-900 bg-white ring-1 ring-stone-900'
+                                : 'border-stone-200 bg-white hover:border-stone-400'
                             }`}
                           >
                           {/* Name & Title */}
@@ -3084,8 +3257,8 @@
                               <p className="text-[11px] font-semibold text-stone-700 mt-0.5">{cand.title}</p>
                             </div>
                             {cand.compensationTarget && (
-                              <span className="bg-emerald-50 border border-emerald-200 text-emerald-800 text-[10px] px-2 py-0.5 rounded-md font-semibold shrink-0">
-                                💰 {cand.compensationTarget}
+                              <span className="text-[11px] text-stone-900 font-semibold shrink-0 text-right max-w-[45%]">
+                                {cand.compensationTarget}
                               </span>
                             )}
                           </div>
@@ -3094,13 +3267,13 @@
                           <div className="space-y-1 text-[11px]">
                             {cand.company && (
                               <p className="text-stone-600">
-                                🏢 Company: <span className="font-medium text-stone-800">{cand.company}</span>
+                                Company: <span className="font-medium text-stone-800">{cand.company}</span>
                               </p>
                             )}
 
                             {cand.industry && (
                               <p className="text-stone-600">
-                                🏭 Industry: <span className="font-normal">{cand.industry}</span>
+                                Industry: <span className="font-normal">{cand.industry}</span>
                               </p>
                             )}
 
@@ -3111,7 +3284,7 @@
                             )}
 
                             {cand.shift && (
-                              <p className="text-stone-500 text-[10px]">⏱️ Shift: {cand.shift}</p>
+                              <p className="text-stone-500 text-[10px]">Shift: {cand.shift}</p>
                             )}
 
                           </div>
@@ -3147,6 +3320,84 @@
               )}
 
             </div>
+
+            {/* RIGHT PANEL: CANDIDATES MATCHED TO THE PICKED JOB */}
+            {selectedJob && (
+              <aside
+                style={{ width: isDesktop ? '380px' : '100%' }}
+                className={`border-l border-stone-200 bg-[#FAF9F6] flex-col shrink-0 overflow-hidden ${activeTab === 'matches' ? 'flex' : 'hidden lg:flex'}`}
+              >
+                <div className="px-3.5 h-11 bg-white border-b border-stone-200 flex items-center justify-between text-xs shrink-0">
+                  <span className="font-semibold text-stone-900">Candidate matches</span>
+                  <span className="text-stone-700"><b className="text-stone-900">{matchedCandidates.length}</b> found</span>
+                </div>
+
+                <div className="p-3.5 bg-white border-b border-stone-200 space-y-3 shrink-0">
+                  {/* Radius dial */}
+                  <div>
+                    <div className="flex items-center justify-between text-[11px] mb-1.5">
+                      <label htmlFor="radius-dial" className="font-semibold text-stone-900">Radius</label>
+                      <span className="text-stone-900">{radiusKm === 'ALL' ? 'All locations' : `${radiusKm} km`}</span>
+                    </div>
+                    <div className="flex items-center gap-2.5">
+                      <input
+                        id="radius-dial"
+                        type="range" min="10" max="150" step="5"
+                        value={radiusKm === 'ALL' ? 150 : radiusKm}
+                        onChange={(e) => setRadiusKm(Number(e.target.value))}
+                        className={`radius-dial flex-1 ${radiusKm === 'ALL' ? 'opacity-40' : ''}`}
+                      />
+                      <button
+                        onClick={() => setRadiusKm(prev => prev === 'ALL' ? 50 : 'ALL')}
+                        aria-pressed={radiusKm === 'ALL'}
+                        className={`h-7 px-2.5 rounded-md border text-[11px] font-semibold transition-colors ${
+                          radiusKm === 'ALL' ? 'bg-stone-900 text-white border-stone-900' : 'bg-white text-stone-900 border-stone-300 hover:bg-stone-100'
+                        }`}
+                      >
+                        All
+                      </button>
+                    </div>
+                    <p className="text-[10.5px] text-stone-600 mt-1.5">Title matches outside the radius, or with no location, stay listed. All shows everyone. Distances are city level estimates.</p>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <select aria-label="Candidate match type" value={candidateMatchScope}
+                      onChange={(e) => setCandidateMatchScope(e.target.value)}
+                      className="control-field flex-1 min-w-0 cursor-pointer">
+                      <option value="relevant">Title + related matches</option>
+                      <option value="role">Title matches only</option>
+                      <option value="similar">Similar roles or background</option>
+                      <option value="industry">Related industry only</option>
+                    </select>
+                  </div>
+                  <div className="relative">
+                    <input
+                      type="text"
+                      placeholder="Filter by name, skill, or notes"
+                      value={candidateSearchText}
+                      onChange={(e) => setCandidateSearchText(e.target.value)}
+                      className="control-field w-full pr-8"
+                    />
+                    {candidateSearchText && (
+                      <button onClick={() => setCandidateSearchText('')} aria-label="Clear candidate filter"
+                        className="absolute right-2.5 top-1/2 -translate-y-1/2 text-xs text-stone-500 hover:text-stone-900">✕</button>
+                    )}
+                  </div>
+                  {trackerLinkWarning && <p className="text-[11px] text-stone-900">{trackerLinkWarning}</p>}
+                </div>
+
+                <div key={`matches-${selectedJob.id}`} className="flex-1 overflow-y-auto p-3.5 space-y-3 overscroll-contain custom-scrollbar">
+                  {matchedCandidates.length === 0 ? (
+                    <div className="py-12 text-center space-y-2">
+                      <p className="text-sm font-semibold text-stone-900">No candidates match these criteria</p>
+                      <p className="text-xs text-stone-600">Try widening the radius, clearing the filter, or choosing "Title + related matches".</p>
+                    </div>
+                  ) : (
+                    matchedCandidates.map(cand => renderCandidateCard(cand))
+                  )}
+                </div>
+              </aside>
+            )}
 
           </div>
 

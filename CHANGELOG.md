@@ -4,6 +4,30 @@ All notable changes, fixes, and architectural upgrades for the **Top Tier Talent
 
 ---
 
+## [Unreleased] / v2.7.0 - 2026-10-16
+
+### Three-part flow: job list, map, matches
+- **Left panel** shows the job list. Picking a job collapses it to that job card plus role details, with a "Back to all roles" link.
+- **Right panel** lists candidates matched to the picked job, ranked title match first, then industry, then city-level distance. Replaces the floating job drawer.
+- **Radius dial** (10 to 150 km, plus All, default 50 km). Title matches outside the radius, or with no location, stay listed. Candidate distances are labelled approximate, city level. Province-level rows show "Province-level location" instead of a number.
+- **Mobile** gets a third tab (Map / Job / Matches) once a job is picked.
+
+### Candidate pins
+- **No more swirl.** Each candidate gets a stable scattered point inside their city (7 km, 40 km for province-only rows), seeded from name, title, company and location so pins never jump between loads. Lake Ontario shoreline guard keeps GTA, Hamilton and Niagara pins on land.
+- **Calm clusters.** Spiderfy and cluster animation off. Clustering stops at street zoom so every pin shows.
+- **On-demand loading.** Candidates are hidden until a job is picked or a location is searched. Only pins inside the current map view are drawn (capped at 300) and they reload on pan or zoom.
+- **City coverage.** Candidate locations now parse the first place in free text ("Brampton, ON | open to relocation"). About 160 more cities added to the built-in table from a one-time city-level geocode, so about 1,377 of 1,511 candidates now get a city pin (was about 960). Unmatched cities geocode once in the background and cache locally. Nothing is written back to the sheet.
+
+### Look and feel
+- Arial/Calibri only (Inter and JetBrains Mono removed). Black text, no colored badges.
+- Search bar restyled: white field, 1px border, 10px radius, single pin icon, "Search a city, postal code, or address". Owners, radius, km/mi and Region sit on one row at one height. Region is now a single select.
+- Header and map controls simplified to one button style, emoji icons replaced.
+
+### Fixes
+- Map pin effects were declared before the memoized lists they depended on, so filter changes did not always redraw pins. Moved below `matchedCandidates`.
+- Picking a job on the mobile List tab no longer throws a Leaflet fly error on the hidden map.
+- Location suggestions close when a search is submitted.
+
 ## [Unreleased] / v2.6.0 — 2026-10-13
 
 ### 🎨 Visual & Marker Upgrades
